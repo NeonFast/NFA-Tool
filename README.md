@@ -1,43 +1,49 @@
 English | Русский
 
-NFA Tool
-A simple tool for managing and logging into Steam accounts using JWT tokens. OPEN-SOURCE WILL BE LATER WHEN I MAKE CODE MORE READABLE
+
+## **NFA Tool: A simple tool for managing and logging into Steam accounts using JWT tokens.**
 
 
-Features:
+**Features:**
  - Add and store Steam account login credentials (JWT tokens).
  - Quickly switch between saved accounts.
  - Reset Steam client settings.
  - Built-in instructions. RUSSIAN ONLY
 Automatic update checker.
 
-Requirements:
+**Requirements:**
  - Windows OS
  - Steam client installed
 
-Usage:
+**Usage:**
  - Run NFA.Tool.exe.
  - Enter your account key (JWT token) in the input field.
  - Click "Login" to launch Steam with the selected account.
 
 
-Русский | 
-NFA Tool
-Простой инструмент для управления и входа в аккаунты Steam с использованием JWT-токенов. ОТКРЫТЫЙ ИСХОДНЫЙ КОД БУДЕТ ПОЗЖЕ, КОГДА Я СДЕЛАЮ КОД БОЛЕЕ ЧИТАЕМЫМ
 
 
-Возможности:
+## **NFA Tool: Простой инструмент для управления и входа в аккаунты Steam с использованием JWT-токенов.**
+
+
+**Возможности:**
  - Добавление и хранение данных для входа в аккаунты Steam (JWT-токены).
  - Быстрое переключение между сохранёнными аккаунтами.
  - Сброс настроек клиента Steam.
  - Встроенная инструкция.
  - Проверка автоматических обновлений.
 
-Требования:
+**Требования:**
  - ОС Windows
  - Установленный клиент Steam
 
-Использование:
+**Использование:**
  - Запустите NFA.Tool.exe.
  - Введите ваш ключ аккаунта (JWT-токен) в поле ввода.
  - Нажмите "Login" для запуска Steam с выбранным аккаунтом.
+
+
+
+OPEN-SOURCE WILL BE LATER WHEN I MAKE CODE MORE READABLE
+
+ОТКРЫТЫЙ ИСХОДНЫЙ КОД БУДЕТ ПОЗЖЕ, КОГДА Я СДЕЛАЮ КОД БОЛЕЕ ЧИТАЕМЫМ
