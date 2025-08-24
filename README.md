@@ -8,8 +8,8 @@ English | Русский
  - Add and store Steam account login credentials (JWT tokens).
  - Quickly switch between saved accounts.
  - Reset Steam client settings.
- - Built-in instructions. RUSSIAN ONLY
-Automatic update checker.
+ - Built-in instructions. *RUSSIAN ONLY*
+ - Automatic update checker.
 
 **Requirements:**
  - Windows OS
