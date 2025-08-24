@@ -1,5 +1,5 @@
 English | Русский
-
+English | 
 NFA Tool
 A simple tool for managing and logging into Steam accounts using JWT tokens.
 
@@ -21,7 +21,7 @@ Usage:
  - Click "Login" to launch Steam with the selected account.
 
 
-Русский
+Русский | 
 NFA Tool
 Простой инструмент для управления и входа в аккаунты Steam с использованием JWT-токенов.
 
