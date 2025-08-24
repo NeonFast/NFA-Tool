@@ -1,5 +1,5 @@
 English | Русский
-English | 
+
 NFA Tool
 A simple tool for managing and logging into Steam accounts using JWT tokens.
 
