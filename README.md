@@ -1,7 +1,7 @@
 English | Русский
 
 NFA Tool
-A simple tool for managing and logging into Steam accounts using JWT tokens.
+A simple tool for managing and logging into Steam accounts using JWT tokens. OPEN-SOURCE WILL BE LATER WHEN I MAKE CODE MORE READABLE
 
 
 Features:
@@ -23,7 +23,7 @@ Usage:
 
 Русский | 
 NFA Tool
-Простой инструмент для управления и входа в аккаунты Steam с использованием JWT-токенов.
+Простой инструмент для управления и входа в аккаунты Steam с использованием JWT-токенов. ОТКРЫТЫЙ ИСХОДНЫЙ КОД БУДЕТ ПОЗЖЕ, КОГДА Я СДЕЛАЮ КОД БОЛЕЕ ЧИТАЕМЫМ
 
 
 Возможности:
