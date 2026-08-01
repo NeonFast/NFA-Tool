@@ -1,0 +1,41 @@
+# Wails v3 build configuration
+version: '3'
+
+info:
+  companyName: "NFA Tool"
+  productName: "NFA Tool"
+  productIdentifier: "com.nfatool.app"
+  description: "Steam cache login utility (Windows)"
+  copyright: "© 2026 NFA Tool contributors"
+  comments: "Desktop client for Steam ConnectCache token login"
+  version: "1.0.0"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend/node_modules
+      - bin
+      - .task
+    file:
+      - .DS_Store
+      - user_backup.json
+    watchedExtension:
+      - "*.go"
+      - "*.js"
+      - "*.ts"
+      - "*.svelte"
+      - "*.vue"
+      - "*.css"
+      - "*.html"
+      - "*.json"
+    gitCommands:
+      - git ls-files
+      - git ls-files --others --exclude-standard
+  cmds:
+    - wails3 task common:install:frontend:deps
+    - wails3 task common:dev:frontend

@@ -1,0 +1,36 @@
+# Build / tooling
+.task/
+bin/
+*.exe
+*.syso
+*.test
+*.out
+
+# Frontend
+frontend/dist/
+frontend/node_modules/
+
+# Runtime data (tokens — never commit)
+user_backup.json
+logs/
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Wails / packaging leftovers
+build/linux/appimage/build/
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+build/ios/xcode/overlay.json
+build/ios/xcode/gen/
+build/android/overlay.json
+build/android/gen/
+
+# Local env
+.env
+.env.*

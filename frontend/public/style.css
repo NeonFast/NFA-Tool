@@ -1,0 +1,5 @@
+/* App styles live in App.svelte. Keep this file minimal for template compatibility. */
+html, body, #app {
+  height: 100%;
+  margin: 0;
+}

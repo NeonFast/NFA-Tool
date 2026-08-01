@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "1.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "1.0.0",
+			"CompanyName": "NFA Tool",
+			"FileDescription": "Steam Cache Login Tool",
+			"LegalCopyright": "© 2026 NFA Tool contributors",
+			"ProductName": "NFA Tool",
+			"Comments": "Steam ConnectCache login utility for Windows"
+		}
+	}
+}
