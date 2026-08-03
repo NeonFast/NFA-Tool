@@ -15,7 +15,8 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 - Optional **keep other Steam logins** (surgical ConnectCache / loginusers merge)
 - RU / EN UI (system language + manual switch)
 - Native success/error dialogs
-- Reset Steam (config / userdata / local cache)
+- **Update checker** (GitHub Releases) + one-click install/restart
+- Reset Steam (config / userdata)
 - Runs elevated for config writes; starts Steam **unelevated**
 - Single native `NFA-Tool-Recode-v2.exe`
 

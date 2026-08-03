@@ -10,6 +10,7 @@ import (
 	"nfa-tool/internal/steam"
 	"nfa-tool/internal/storage"
 	"nfa-tool/internal/token"
+	"nfa-tool/internal/update"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -66,6 +67,33 @@ func NewAppService() *AppService {
 
 func (s *AppService) GetVersion() string {
 	return AppVersion
+}
+
+// CheckForUpdates queries GitHub Releases for a newer version.
+func (s *AppService) CheckForUpdates() update.Info {
+	return update.CheckLatest(AppVersion)
+}
+
+// InstallUpdate downloads the release exe and restarts into it.
+func (s *AppService) InstallUpdate(downloadURL string) Result {
+	if err := update.ApplyDownload(downloadURL); err != nil {
+		return s.fail(err.Error())
+	}
+	// quit so the bat can replace the file
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		if app := application.Get(); app != nil {
+			app.Quit()
+		} else {
+			os.Exit(0)
+		}
+	}()
+	return s.ok("Update downloaded. Restarting…")
+}
+
+// OpenURL opens a link in the default browser.
+func (s *AppService) OpenURL(url string) {
+	_ = openBrowser(url)
 }
 
 func (s *AppService) ListAccounts() ([]AccountDTO, error) {

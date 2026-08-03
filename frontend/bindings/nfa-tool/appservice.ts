@@ -12,7 +12,18 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as update$0 from "./internal/update/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * CheckForUpdates queries GitHub Releases for a newer version.
+ */
+export function CheckForUpdates(): $CancellablePromise<update$0.Info> {
+    return $Call.ByID(3671876993);
+}
 
 export function DeleteAccount(account: string): $CancellablePromise<$models.Result> {
     return $Call.ByID(991878028, account);
@@ -27,6 +38,13 @@ export function GetAppName(): $CancellablePromise<string> {
 
 export function GetVersion(): $CancellablePromise<string> {
     return $Call.ByID(2729898890);
+}
+
+/**
+ * InstallUpdate downloads the release exe and restarts into it.
+ */
+export function InstallUpdate(downloadURL: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3729456840, downloadURL);
 }
 
 export function ListAccounts(): $CancellablePromise<$models.AccountDTO[] | null> {
@@ -46,6 +64,13 @@ export function LoginSaved(account: string, keepExisting: boolean): $Cancellable
  */
 export function Notify(success: boolean, title: string, message: string): $CancellablePromise<void> {
     return $Call.ByID(3513873047, success, title, message);
+}
+
+/**
+ * OpenURL opens a link in the default browser.
+ */
+export function OpenURL(url: string): $CancellablePromise<void> {
+    return $Call.ByID(790318107, url);
 }
 
 export function ResetSteam(): $CancellablePromise<$models.Result> {

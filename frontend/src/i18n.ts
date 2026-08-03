@@ -41,6 +41,16 @@ export type Dict = {
   successTitle: string;
   errorTitle: string;
   steamNotDetected: string;
+  checkUpdate: string;
+  updateTitle: string;
+  updateAvailable: string; // {current} {latest}
+  updateNone: string;
+  updateNow: string;
+  updateLater: string;
+  updateOpenPage: string;
+  updateInstalling: string;
+  updateFailed: string;
+  updateChecking: string;
 };
 
 const en: Dict = {
@@ -83,6 +93,16 @@ const en: Dict = {
   successTitle: 'Success',
   errorTitle: 'Error',
   steamNotDetected: 'Steam did not start. Check the tray or Task Manager.',
+  checkUpdate: 'Check update',
+  updateTitle: 'Update available',
+  updateAvailable: 'New version {latest} is available (you have {current}).',
+  updateNone: 'You have the latest version.',
+  updateNow: 'Update now',
+  updateLater: 'Later',
+  updateOpenPage: 'Open download page',
+  updateInstalling: 'Downloading update… The app will restart.',
+  updateFailed: 'Update failed',
+  updateChecking: 'Checking for updates…',
 };
 
 const ru: Dict = {
@@ -124,7 +144,17 @@ const ru: Dict = {
   validUntil: 'валиден до {until}',
   successTitle: 'Успех',
   errorTitle: 'Ошибка',
-  steamNotDetected: 'Внимание: steam.exe не найден после запуска. Проверьте трей или Диспетчер задач.',
+  steamNotDetected: 'Steam не запустился. Проверьте трей или Диспетчер задач.',
+  checkUpdate: 'Обновления',
+  updateTitle: 'Доступно обновление',
+  updateAvailable: 'Доступна версия {latest} (у вас {current}).',
+  updateNone: 'У вас последняя версия.',
+  updateNow: 'Обновить',
+  updateLater: 'Позже',
+  updateOpenPage: 'Страница загрузки',
+  updateInstalling: 'Скачиваем обновление… Приложение перезапустится.',
+  updateFailed: 'Не удалось обновить',
+  updateChecking: 'Проверка обновлений…',
 };
 
 const catalogs: Record<Lang, Dict> = { en, ru };

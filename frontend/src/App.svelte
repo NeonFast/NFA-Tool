@@ -45,13 +45,23 @@
   let statusKind = $state<'ok' | 'err' | ''>('ok');
   let loading = $state(false);
   let showHelp = $state(false);
+  let showUpdate = $state(false);
+  let updateBusy = $state(false);
+  let updateInfo = $state<{
+    updateAvailable: boolean;
+    currentVersion: string;
+    latestVersion: string;
+    releaseUrl: string;
+    downloadUrl: string;
+    releaseNotes: string;
+    error?: string;
+  } | null>(null);
 
   const title = $derived(`${appName} · ${version}`);
 
   onMount(async () => {
     status = t(lang, 'ready');
     try {
-      // GetAppName may be missing until bindings regenerate
       const anySvc = AppService as typeof AppService & { GetAppName?: () => Promise<string> };
       if (typeof anySvc.GetAppName === 'function') {
         appName = await anySvc.GetAppName();
@@ -61,7 +71,82 @@
       /* ignore */
     }
     await refreshAccounts();
+    // silent check on start
+    void checkUpdates(true);
   });
+
+  async function checkUpdates(silent = false) {
+    if (!silent) {
+      setStatus(t(lang, 'updateChecking'), '', true);
+    }
+    try {
+      const info = await (AppService as any).CheckForUpdates();
+      updateInfo = info;
+      if (info?.error && !silent) {
+        setStatus(info.error, 'err', true);
+        await notify(false, info.error);
+        return;
+      }
+      if (info?.updateAvailable) {
+        showUpdate = true;
+        if (!silent) {
+          setStatus(
+            t(lang, 'updateAvailable', { current: info.currentVersion, latest: info.latestVersion }),
+            'ok',
+            true,
+          );
+        }
+      } else if (!silent) {
+        const msg = t(lang, 'updateNone');
+        setStatus(msg, 'ok', true);
+        await notify(true, msg);
+      }
+    } catch (e) {
+      if (!silent) {
+        setStatus(String(e), 'err');
+        await notify(false, String(e));
+      }
+    }
+  }
+
+  async function installUpdate() {
+    if (!updateInfo?.downloadUrl) {
+      if (updateInfo?.releaseUrl) {
+        try {
+          await (AppService as any).OpenURL(updateInfo.releaseUrl);
+        } catch {
+          await Browser.OpenURL(updateInfo.releaseUrl);
+        }
+      }
+      return;
+    }
+    updateBusy = true;
+    setStatus(t(lang, 'updateInstalling'), '', true);
+    try {
+      const res = (await (AppService as any).InstallUpdate(updateInfo.downloadUrl)) as Result;
+      if (!res.ok) {
+        setStatus(res.message, 'err');
+        await notify(false, res.message || t(lang, 'updateFailed'));
+        updateBusy = false;
+        return;
+      }
+      // app should quit shortly
+    } catch (e) {
+      setStatus(String(e), 'err');
+      await notify(false, String(e));
+      updateBusy = false;
+    }
+  }
+
+  async function openReleasePage() {
+    const url = updateInfo?.releaseUrl || updateInfo?.downloadUrl;
+    if (!url) return;
+    try {
+      await (AppService as any).OpenURL(url);
+    } catch {
+      await Browser.OpenURL(url);
+    }
+  }
 
   function setLang(next: Lang) {
     lang = next;
@@ -180,6 +265,7 @@
           onclick={() => setLang('en')}
         >EN</button>
       </div>
+      <button class="ghost" type="button" onclick={() => checkUpdates(false)}>{t(lang, 'checkUpdate')}</button>
       <button class="ghost" type="button" onclick={resetSteam}>{t(lang, 'resetSteam')}</button>
       <button class="ghost" type="button" onclick={() => (showHelp = true)}>{t(lang, 'showInstructions')}</button>
       <div class="win-btns">
@@ -264,6 +350,35 @@
         </button>
       </p>
       <button class="primary" type="button" onclick={() => (showHelp = false)}>{t(lang, 'gotIt')}</button>
+    </div>
+  </div>
+{/if}
+
+{#if showUpdate && updateInfo}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+  <div class="modal" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => !updateBusy && e.currentTarget === e.target && (showUpdate = false)}>
+    <div class="modal-card">
+      <h3>{t(lang, 'updateTitle')}</h3>
+      <p class="update-msg">
+        {t(lang, 'updateAvailable', {
+          current: updateInfo.currentVersion,
+          latest: updateInfo.latestVersion,
+        })}
+      </p>
+      {#if updateInfo.releaseNotes}
+        <pre class="notes">{updateInfo.releaseNotes}</pre>
+      {/if}
+      <div class="modal-actions">
+        <button class="primary" type="button" disabled={updateBusy} onclick={installUpdate}>
+          {updateBusy ? t(lang, 'updateInstalling') : t(lang, 'updateNow')}
+        </button>
+        <button class="ghost-block" type="button" disabled={updateBusy} onclick={openReleasePage}>
+          {t(lang, 'updateOpenPage')}
+        </button>
+        <button class="ghost-block" type="button" disabled={updateBusy} onclick={() => (showUpdate = false)}>
+          {t(lang, 'updateLater')}
+        </button>
+      </div>
     </div>
   </div>
 {/if}
@@ -702,6 +817,55 @@
 
   .modal-card .primary {
     width: 100%;
+  }
+
+  .update-msg {
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .notes {
+    max-height: 160px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-family: inherit;
+  }
+
+  .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ghost-block {
+    width: 100%;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ghost-block:hover:not(:disabled) {
+    border-color: rgba(167, 139, 250, 0.4);
+    color: var(--accent);
+  }
+
+  .ghost-block:disabled,
+  .primary:disabled {
+    opacity: 0.55;
+    cursor: wait;
   }
 
   .guide {
