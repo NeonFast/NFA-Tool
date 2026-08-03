@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <MsixPackagingToolTemplate
     xmlns="http://schemas.microsoft.com/msix/packaging/msixpackagingtool/template/2022">
     <Settings
@@ -10,11 +10,11 @@
     <Installer
         Path="nfa-tool-v3.exe"
         Arguments=""
-        InstallLocation="C:\Program Files\My Company\NFA Tool">
+        InstallLocation="C:\Program Files\My Company\NFA Tool Recode v2">
     </Installer>
     <PackageInformation
-        PackageName="NFA Tool"
-        PackageDisplayName="NFA Tool"
+        PackageName="NFA Tool Recode v2"
+        PackageDisplayName="NFA Tool Recode v2"
         PublisherName="CN=My Company"
         PublisherDisplayName="My Company"
         Version="1.0.0.0"
@@ -27,7 +27,7 @@
             <Application
                 Id="com.example.nfatoolv3"
                 Description="Steam Cache Login Tool"
-                DisplayName="NFA Tool"
+                DisplayName="NFA Tool Recode v2"
                 ExecutableName="nfa-tool-v3.exe"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,7 +41,7 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>NFA Tool</DisplayName>
+            <DisplayName>NFA Tool Recode v2</DisplayName>
             <PublisherDisplayName>My Company</PublisherDisplayName>
             <Description>Steam Cache Login Tool</Description>
             <Logo>Assets\AppIcon.png</Logo>

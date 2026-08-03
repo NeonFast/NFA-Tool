@@ -14,8 +14,14 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// AppVersion is shown in the UI title bar.
-const AppVersion = "1.1.0"
+// AppName / AppVersion shown in the UI title bar.
+const AppName = "NFA Tool Recode v2"
+const AppVersion = "2.0.0"
+
+// GetAppName returns the product display name.
+func (s *AppService) GetAppName() string {
+	return AppName
+}
 
 // AppService is the Wails v3 backend service.
 type AppService struct {

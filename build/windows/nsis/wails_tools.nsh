@@ -1,4 +1,4 @@
-# DO NOT EDIT - Generated automatically by `wails build`
+﻿# DO NOT EDIT - Generated automatically by `wails build`
 
 !include "x64.nsh"
 !include "WinVer.nsh"
@@ -11,7 +11,7 @@
     !define INFO_COMPANYNAME "My Company"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "NFA Tool"
+    !define INFO_PRODUCTNAME "NFA Tool Recode v2"
 !endif
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "1.0.0"

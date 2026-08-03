@@ -14,8 +14,8 @@ func main() {
 	ensureAdmin()
 
 	app := application.New(application.Options{
-		Name:        "NFA Tool",
-		Description: "Steam Cache Login Tool",
+		Name:        "NFA Tool Recode v2",
+		Description: "Steam ConnectCache token login",
 		Services: []application.Service{
 			application.NewService(NewAppService()),
 		},
@@ -29,7 +29,7 @@ func main() {
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "main",
-		Title:            "NFA Tool",
+		Title:            "NFA Tool Recode v2",
 		Width:            980,
 		Height:           640,
 		MinWidth:         980,

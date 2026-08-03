@@ -18,6 +18,13 @@ export function DeleteAccount(account: string): $CancellablePromise<$models.Resu
     return $Call.ByID(991878028, account);
 }
 
+/**
+ * GetAppName returns the product display name.
+ */
+export function GetAppName(): $CancellablePromise<string> {
+    return $Call.ByID(1997395214);
+}
+
 export function GetVersion(): $CancellablePromise<string> {
     return $Call.ByID(2729898890);
 }

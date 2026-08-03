@@ -1,6 +1,6 @@
 [Desktop Entry]
 Version=1.0
-Name=NFA Tool
+Name=NFA Tool Recode v2
 Comment=Steam Cache Login Tool
 # The Exec line includes %u to pass the URL to the application
 Exec=/usr/local/bin/nfa-tool-v3.exe %u

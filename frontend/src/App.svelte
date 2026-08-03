@@ -35,7 +35,8 @@
     message: string;
   };
 
-  let version = $state('1.0.0');
+  let appName = $state('NFA Tool Recode v2');
+  let version = $state('2.0.0');
   let lang = $state<Lang>(loadLang());
   let accountKey = $state('');
   let keepExisting = $state(false);
@@ -45,11 +46,16 @@
   let loading = $state(false);
   let showHelp = $state(false);
 
-  const title = $derived(`NFA Tool v${version}`);
+  const title = $derived(`${appName} · ${version}`);
 
   onMount(async () => {
     status = t(lang, 'ready');
     try {
+      // GetAppName may be missing until bindings regenerate
+      const anySvc = AppService as typeof AppService & { GetAppName?: () => Promise<string> };
+      if (typeof anySvc.GetAppName === 'function') {
+        appName = await anySvc.GetAppName();
+      }
       version = await AppService.GetVersion();
     } catch {
       /* ignore */

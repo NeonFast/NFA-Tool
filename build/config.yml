@@ -3,12 +3,12 @@ version: '3'
 
 info:
   companyName: "NFA Tool"
-  productName: "NFA Tool"
-  productIdentifier: "com.nfatool.app"
+  productName: "NFA Tool Recode v2"
+  productIdentifier: "com.nfatool.recode"
   description: "Steam ConnectCache token login for Windows"
   copyright: "© 2026 NFA Tool contributors"
-  comments: "Production build — see NOTICE.md for credits"
-  version: "1.1.0"
+  comments: "NFA Tool Recode v2 — production"
+  version: "2.0.0"
 
 dev_mode:
   root_path: .

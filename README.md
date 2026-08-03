@@ -1,10 +1,10 @@
-# NFA Tool
+# NFA Tool Recode v2
 
 Windows desktop app for Steam **session login via refresh token** (ConnectCache).
 
 **Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
 
-**Version:** 1.1.0
+**Version:** 2.0.0
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
@@ -17,7 +17,7 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 - Native success/error dialogs
 - Reset Steam (config / userdata / local cache)
 - Runs elevated for config writes; starts Steam **unelevated**
-- Single native `NFA-Tool.exe`
+- Single native `NFA-Tool-Recode-v2.exe`
 
 ## Requirements
 
@@ -39,7 +39,7 @@ cd <repo>
 wails3 build
 ```
 
-Output: **`bin\NFA-Tool.exe`**
+Output: **`bin\NFA-Tool-Recode-v2.exe`**
 
 Dev:
 
