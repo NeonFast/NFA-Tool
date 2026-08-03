@@ -4,7 +4,7 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 
 **Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
 
-**Version:** 2.0.0
+**Version:** 2.0.1
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
@@ -52,7 +52,7 @@ wails3 dev
 
 After the repo is on GitHub, **you don’t upload the exe by hand**.
 
-1. Bump version in code if you want (`appservice.go` → `AppVersion`, optional).
+1. **Always bump** `AppVersion` in `appservice.go` (and `build/config.yml` / `info.json`) to match the tag — otherwise the in-app checker keeps saying “update available”.
 2. Commit & push `main`.
 3. Create and push a tag:
 

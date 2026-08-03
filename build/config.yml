@@ -8,7 +8,7 @@ info:
   description: "Steam ConnectCache token login for Windows"
   copyright: "© 2026 NFA Tool contributors"
   comments: "NFA Tool Recode v2 — production"
-  version: "2.0.0"
+  version: "2.0.1"
 
 dev_mode:
   root_path: .

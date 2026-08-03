@@ -36,7 +36,7 @@
   };
 
   let appName = $state('NFA Tool Recode v2');
-  let version = $state('2.0.0');
+  let version = $state('2.0.1');
   let lang = $state<Lang>(loadLang());
   let accountKey = $state('');
   let keepExisting = $state(false);
@@ -357,7 +357,7 @@
 {#if showUpdate && updateInfo}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
   <div class="modal" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => !updateBusy && e.currentTarget === e.target && (showUpdate = false)}>
-    <div class="modal-card">
+    <div class="modal-card update">
       <h3>{t(lang, 'updateTitle')}</h3>
       <p class="update-msg">
         {t(lang, 'updateAvailable', {
@@ -795,6 +795,13 @@
     box-shadow: var(--shadow);
   }
 
+  .modal-card.update {
+    width: min(560px, 94vw);
+    max-height: min(720px, 88vh);
+    display: flex;
+    flex-direction: column;
+  }
+
   .modal-card h3 {
     color: var(--accent);
     margin-bottom: 12px;
@@ -827,14 +834,17 @@
   }
 
   .notes {
-    max-height: 160px;
+    flex: 1;
+    min-height: 180px;
+    max-height: 360px;
     overflow: auto;
     white-space: pre-wrap;
     word-break: break-word;
     background: rgba(0, 0, 0, 0.28);
     border-radius: 12px;
-    padding: 10px 12px;
-    font-size: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.45;
     color: var(--muted);
     margin-bottom: 14px;
     font-family: inherit;
