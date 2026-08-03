@@ -34,8 +34,8 @@ go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 ## Build (production)
 
 ```powershell
-git clone <your-repo-url>
-cd <repo>
+git clone https://github.com/NeonFast/NFA-Tool.git
+cd NFA-Tool
 wails3 build
 ```
 
@@ -46,6 +46,29 @@ Dev:
 ```powershell
 wails3 dev
 ```
+
+## Auto releases (GitHub Actions)
+
+After the repo is on GitHub, **you don’t upload the exe by hand**.
+
+1. Bump version in code if you want (`appservice.go` → `AppVersion`, optional).
+2. Commit & push `main`.
+3. Create and push a tag:
+
+```powershell
+git tag v2.0.1
+git push origin v2.0.1
+```
+
+GitHub Actions (`.github/workflows/release.yml`) will:
+
+- build Windows exe on `windows-latest`
+- create a **Release** named like `NFA Tool Recode v2 2.0.1`
+- attach `NFA-Tool-Recode-v2-windows-amd64.exe` + `SHA256SUMS.txt`
+
+Also: every push/PR to `main` runs `.github/workflows/windows-build.yml` and uploads a build **artifact** (not a full Release).
+
+Manual run: Actions → **Release** → Run workflow (optional tag input).
 
 ## Usage
 

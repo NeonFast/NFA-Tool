@@ -1,0 +1,88 @@
+name: Release
+
+# Push a version tag → build Windows exe → publish GitHub Release
+# Example:
+#   git tag v2.0.1
+#   git push origin v2.0.1
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release as (e.g. v2.0.1). Leave empty to use run id."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Version from tag
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="v0.0.0-run.${{ github.run_id }}"
+          fi
+          # strip leading v for display if present
+          VER="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Using tag=$TAG version=$VER"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Wails v3
+        shell: pwsh
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+          echo "$(go env GOPATH)/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build
+        shell: pwsh
+        run: wails3 build
+
+      - name: Prepare assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          $exe = Get-ChildItem bin\*.exe | Select-Object -First 1
+          if (-not $exe) { throw "No exe in bin/" }
+          $name = "NFA-Tool-Recode-v2-windows-amd64.exe"
+          Copy-Item $exe.FullName "release\$name"
+          Get-FileHash "release\$name" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $name" } |
+            Set-Content -Encoding ascii "release\SHA256SUMS.txt"
+          Get-ChildItem release | Format-Table Name, Length
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: NFA Tool Recode v2 ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            release/*.exe
+            release/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
