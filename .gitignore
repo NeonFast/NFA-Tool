@@ -15,6 +15,13 @@ user_backup.json
 logs/
 *.log
 
+# Legacy heavy binaries (keep folder, ignore exes)
+legacy/binaries/
+legacy/**/*.exe
+
+# Leftover nested folder if old elevated process still locks it
+nfa-tool-v3/
+
 # IDE / OS
 .idea/
 .vscode/

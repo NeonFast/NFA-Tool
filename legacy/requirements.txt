@@ -1,0 +1,7 @@
+requests
+psutil
+pywin32
+PyQt5
+PyJWT
+vdf
+PyQtWebEngine
