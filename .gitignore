@@ -25,10 +25,6 @@ accounts.db-shm
 logs/
 *.log
 
-# Legacy heavy binaries
-legacy/binaries/
-legacy/**/*.exe
-
 # Leftover nested folder / temp
 nfa-tool-v3/
 _to_delete*/

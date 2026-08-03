@@ -21,7 +21,6 @@ dev_mode:
       - frontend/node_modules
       - bin
       - .task
-      - legacy
     file:
       - .DS_Store
       - user_backup.json

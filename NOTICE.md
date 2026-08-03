@@ -17,8 +17,6 @@ We did **not** copy their codebases wholesale. Logic was reimplemented for this
 stack, verified against a live Steam install, and adapted (admin elevation,
 unelevated Steam launch, SQLite storage, RU/EN UI, etc.).
 
-Legacy Python sources under `legacy/` are archived earlier prototypes.
-
 ## AI-assisted development
 
 Parts of this codebase were **polished and refined with assistance from AI**

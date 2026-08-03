@@ -66,7 +66,6 @@ internal/token/
 internal/storage/
 frontend/
 build/
-legacy/                 archive only
 .github/workflows/
 ```
 

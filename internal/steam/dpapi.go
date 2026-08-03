@@ -9,9 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// Match kWAYTV/roster + legacy Python:
-// description bytes are UTF-16LE "BObfuscateBuffer\0", then re-encoded the same
-// quirky way (utf8_lossy → utf16), flags 0x11.
+// Steam DPAPI: description UTF-16LE "BObfuscateBuffer\0" (roster-compatible), flags 0x11.
 var descriptionRaw = []byte{
 	'B', 0, 'O', 0, 'b', 0, 'f', 0, 'u', 0, 's', 0, 'c', 0, 'a', 0, 't', 0, 'e', 0,
 	'B', 0, 'u', 0, 'f', 0, 'f', 0, 'e', 0, 'r', 0, 0, 0,

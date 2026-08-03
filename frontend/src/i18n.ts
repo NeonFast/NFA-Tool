@@ -196,7 +196,7 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
     return out;
   }
 
-  // legacy duration form
+  // older duration form
   re = /^Logged in as (.+?) · token valid (.+)$/;
   match = m.match(re);
   if (match) return t(lang, 'loggedInToken', { name: match[1], until: match[2] });

@@ -14,7 +14,7 @@ import (
 )
 
 const dbFileName = "accounts.db"
-const legacyJSONName = "user_backup.json"
+const oldJSONName = "user_backup.json"
 
 // Store persists account -> refresh token in SQLite next to the executable.
 type Store struct {
@@ -45,8 +45,8 @@ func New(baseDir string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	// One-time import from old JSON backup
-	_ = s.migrateLegacyJSON(filepath.Join(baseDir, legacyJSONName))
+	// One-time import from older JSON backup if present
+	_ = s.migrateOldJSON(filepath.Join(baseDir, oldJSONName))
 	return s, nil
 }
 
@@ -72,10 +72,10 @@ func (s *Store) init() error {
 	return nil
 }
 
-func (s *Store) migrateLegacyJSON(jsonPath string) error {
+func (s *Store) migrateOldJSON(jsonPath string) error {
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
-		return nil // no legacy file
+		return nil // nothing to import
 	}
 	m := map[string]string{}
 	if err := json.Unmarshal(data, &m); err != nil || len(m) == 0 {
