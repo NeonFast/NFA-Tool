@@ -49,51 +49,26 @@ wails3 dev
 
 ## Usage
 
-1. Run **as Administrator** (UAC prompt).
-2. If Steam was never opened on this PC — launch Steam once, then close it.
+1. Run as **Administrator**.
+2. Open Steam once on this PC if you never did, then close it.
 3. Paste key: `login----token`
-4. Press **Login** — Steam restarts with that session.
+4. Press **Login**.
 5. Guide: https://teletype.in/@hackerdlc/CS2NFA
 
-### Keep existing
-
-- **On** — merge into existing ConnectCache / loginusers (other cached sessions kept).
-- **Off** — still uses surgical writes; does not wipe the whole Steam install.
-
-Accounts in the app list are always stored in `accounts.db` regardless of the checkbox.
+Optional: **Keep other Steam accounts** — leaves your previous Steam logins available.
 
 ## Project layout
 
 ```
-main.go / appservice.go     Wails app + API
-internal/steam/             Steam path, DPAPI, VDF surgery, login, launch
-internal/token/             JWT parse / TTL
-internal/storage/           SQLite accounts.db
-frontend/                   Svelte UI + i18n
-build/                      Wails packaging / Windows metadata
-legacy/                     Old Python / Wails v2 (archive only)
-.github/workflows/          Windows CI build
+main.go / appservice.go
+internal/steam/
+internal/token/
+internal/storage/
+frontend/
+build/
+legacy/                 archive only
+.github/workflows/
 ```
-
-## How login works (high level)
-
-1. Stop `steam.exe` / `steamwebhelper.exe`
-2. Encrypt refresh token with DPAPI (`BObfuscateBuffer` + account entropy)
-3. Upsert hex blob into `%LOCALAPPDATA%\Steam\local.vdf` → `ConnectCache`
-4. Mark user active in `Steam\config\loginusers.vdf`
-5. Ensure `Accounts` entry in `config.vdf` (no full rewrite)
-6. Set `HKCU\SOFTWARE\Valve\Steam\AutoLoginUser`
-7. Start `steam.exe` detached / unelevated
-
-## Production checklist
-
-- [x] Release build: `wails3 build` (`production`, stripped, GUI subsystem)
-- [x] UAC manifest: `requireAdministrator`
-- [x] Version metadata: `build/config.yml`, `build/windows/info.json`, `AppVersion`
-- [x] Secrets gitignored: `accounts.db`, `*.db-*`, tokens, logs
-- [x] CI: `.github/workflows/windows-build.yml`
-- [x] License: MIT
-- [x] Attribution: [NOTICE.md](NOTICE.md)
 
 ## Security
 

@@ -58,6 +58,9 @@ build/bin/
 *.pem
 *.key
 
+# Design drop (source kept as build/appicon.png)
+# nfa_icon.jpg can stay tracked if desired
+
 # Go
 vendor/
 coverage.out
