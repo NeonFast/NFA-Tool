@@ -2,13 +2,16 @@
 .task/
 bin/
 *.exe
+*.exe~
 *.syso
 *.test
 *.out
+*.dll
 
 # Frontend
 frontend/dist/
 frontend/node_modules/
+frontend/.vite/
 
 # Runtime data (tokens — never commit)
 user_backup.json
@@ -22,17 +25,20 @@ accounts.db-shm
 logs/
 *.log
 
-# Legacy heavy binaries (keep folder, ignore exes)
+# Legacy heavy binaries
 legacy/binaries/
 legacy/**/*.exe
 
-# Leftover nested folder if old elevated process still locks it
+# Leftover nested folder / temp
 nfa-tool-v3/
+_to_delete*/
+*.tmp
 
 # IDE / OS
 .idea/
 .vscode/
 *.swp
+*~
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -44,7 +50,14 @@ build/ios/xcode/overlay.json
 build/ios/xcode/gen/
 build/android/overlay.json
 build/android/gen/
+build/bin/
 
-# Local env
+# Local env / secrets
 .env
 .env.*
+*.pem
+*.key
+
+# Go
+vendor/
+coverage.out
