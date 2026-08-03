@@ -34,6 +34,13 @@ export function LoginSaved(account: string, keepExisting: boolean): $Cancellable
     return $Call.ByID(2905720970, account, keepExisting);
 }
 
+/**
+ * Notify shows a native Windows message box. Frontend should pass already-translated title/message.
+ */
+export function Notify(success: boolean, title: string, message: string): $CancellablePromise<void> {
+    return $Call.ByID(3513873047, success, title, message);
+}
+
 export function ResetSteam(): $CancellablePromise<$models.Result> {
     return $Call.ByID(2909845851);
 }

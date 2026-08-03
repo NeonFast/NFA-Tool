@@ -10,15 +10,63 @@ import (
 // Map is a simple VDF object (string keys, string or nested map values).
 type Map map[string]any
 
+// Ordered VDF builders (stable key order like a real dump).
+type kv struct {
+	K string
+	V any
+}
+
+type MapOrdered []kv
+
 func Dump(m Map) string {
 	var b strings.Builder
 	writeMap(&b, m, 0)
 	return b.String()
 }
 
+func DumpOrdered(items []kv) string {
+	var b strings.Builder
+	writeOrdered(&b, items, 0)
+	return b.String()
+}
+
+func writeOrdered(b *strings.Builder, items []kv, indent int) {
+	pad := strings.Repeat("\t", indent)
+	for _, it := range items {
+		switch val := it.V.(type) {
+		case MapOrdered:
+			b.WriteString(pad)
+			b.WriteByte('"')
+			b.WriteString(escape(it.K))
+			b.WriteString("\"\n")
+			b.WriteString(pad)
+			b.WriteString("{\n")
+			writeOrdered(b, val, indent+1)
+			b.WriteString(pad)
+			b.WriteString("}\n")
+		case Map:
+			b.WriteString(pad)
+			b.WriteByte('"')
+			b.WriteString(escape(it.K))
+			b.WriteString("\"\n")
+			b.WriteString(pad)
+			b.WriteString("{\n")
+			writeMap(b, val, indent+1)
+			b.WriteString(pad)
+			b.WriteString("}\n")
+		default:
+			b.WriteString(pad)
+			b.WriteByte('"')
+			b.WriteString(escape(it.K))
+			b.WriteString("\"\t\t\"")
+			b.WriteString(escape(fmt.Sprint(val)))
+			b.WriteString("\"\n")
+		}
+	}
+}
+
 func writeMap(b *strings.Builder, m Map, indent int) {
 	pad := strings.Repeat("\t", indent)
-	// Stable-ish order is not required by Steam; range order is fine.
 	for k, v := range m {
 		switch val := v.(type) {
 		case Map:
@@ -29,6 +77,16 @@ func writeMap(b *strings.Builder, m Map, indent int) {
 			b.WriteString(pad)
 			b.WriteString("{\n")
 			writeMap(b, val, indent+1)
+			b.WriteString(pad)
+			b.WriteString("}\n")
+		case MapOrdered:
+			b.WriteString(pad)
+			b.WriteByte('"')
+			b.WriteString(escape(k))
+			b.WriteString("\"\n")
+			b.WriteString(pad)
+			b.WriteString("{\n")
+			writeOrdered(b, val, indent+1)
 			b.WriteString(pad)
 			b.WriteString("}\n")
 		default:
@@ -118,7 +176,6 @@ func (p *parser) parseString() (string, error) {
 		return "", fmt.Errorf("unexpected eof")
 	}
 	if p.s[p.i] != '"' {
-		// bare token
 		start := p.i
 		for p.i < len(p.s) && !unicode.IsSpace(rune(p.s[p.i])) && p.s[p.i] != '{' && p.s[p.i] != '}' {
 			p.i++

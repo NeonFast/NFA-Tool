@@ -12,6 +12,13 @@ frontend/node_modules/
 
 # Runtime data (tokens — never commit)
 user_backup.json
+user_backup.json.migrated
+accounts.db
+accounts.db-wal
+accounts.db-shm
+*.db
+*.db-wal
+*.db-shm
 logs/
 *.log
 

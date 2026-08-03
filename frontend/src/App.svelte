@@ -11,6 +11,17 @@
     localizeExpiry,
   } from './i18n';
 
+  async function notify(ok: boolean, message: string) {
+    const title = ok ? t(lang, 'successTitle') : t(lang, 'errorTitle');
+    const text = translateBackendMessage(lang, message);
+    try {
+      await AppService.Notify(ok, title, text);
+    } catch {
+      // fallback if bindings lag behind
+      window.alert(`${title}\n\n${text}`);
+    }
+  }
+
   const GUIDE_URL = 'https://teletype.in/@hackerdlc/CS2NFA';
 
   type Account = {
@@ -71,7 +82,9 @@
   async function doLogin() {
     const key = accountKey.trim();
     if (!key) {
-      setStatus(t(lang, 'enterKey'), 'err', true);
+      const msg = t(lang, 'enterKey');
+      setStatus(msg, 'err', true);
+      await notify(false, msg);
       return;
     }
     loading = true;
@@ -79,12 +92,15 @@
     try {
       const res = (await AppService.LoginFromKey(key, keepExisting)) as Result;
       setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
       if (res.ok) {
         accountKey = '';
         await refreshAccounts();
       }
     } catch (e) {
-      setStatus(String(e), 'err');
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
     } finally {
       loading = false;
     }
@@ -95,9 +111,12 @@
     try {
       const res = (await AppService.LoginSaved(name, keepExisting)) as Result;
       setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
       await refreshAccounts();
     } catch (e) {
-      setStatus(String(e), 'err');
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
     }
   }
 
@@ -105,9 +124,12 @@
     try {
       const res = (await AppService.DeleteAccount(name)) as Result;
       setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
       await refreshAccounts();
     } catch (e) {
-      setStatus(String(e), 'err');
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
     }
   }
 
@@ -116,8 +138,13 @@
     try {
       const res = (await AppService.ResetSteam()) as Result;
       setStatus(res.message, res.ok ? 'ok' : 'err');
+      if (res.message !== 'Cancelled' && res.message !== 'cancelled') {
+        await notify(res.ok, res.message);
+      }
     } catch (e) {
-      setStatus(String(e), 'err');
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
     }
   }
 

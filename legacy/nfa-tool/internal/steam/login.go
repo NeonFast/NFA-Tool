@@ -197,7 +197,7 @@ func HarvestConnectCache() (map[string]string, error) {
 	return out, nil
 }
 
-// AccountCRCKey matches Python: crc32 hex without leading zeros + "1"
+// AccountCRCKey CRC32 hex (no leading zeros) + "1"
 func AccountCRCKey(account string) string {
 	sum := crc32.ChecksumIEEE([]byte(account))
 	hex := fmt.Sprintf("%08x", sum)

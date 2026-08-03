@@ -36,7 +36,11 @@ export type Dict = {
   accountNotFound: string;
   accountNameRequired: string;
   loggedInAs: string; // {name}
-  loggedInToken: string; // {name} {ttl}
+  loggedInToken: string; // {name} {until}
+  validUntil: string; // {until}
+  successTitle: string;
+  errorTitle: string;
+  steamNotDetected: string;
 };
 
 const en: Dict = {
@@ -44,7 +48,7 @@ const en: Dict = {
   showInstructions: 'Show Instructions',
   accountManagement: 'Account Management',
   accountKeyPlaceholder: 'Enter your account key...',
-  keepExisting: 'Keep existing Steam accounts',
+  keepExisting: 'Keep other Steam logins (multi ConnectCache)',
   login: 'Login',
   working: 'Working…',
   hintEmpty: 'No accounts added yet. Use the field above to add one. Read the instructions before use.',
@@ -59,7 +63,7 @@ const en: Dict = {
   resettingSteam: 'Resetting Steam...',
   instructions: 'Instructions',
   help1: 'Paste account key as login----eya_token',
-  help2: 'Leave “Keep existing” off for a clean switch (original tool behavior)',
+  help2: 'Keep existing = merge ConnectCache + loginusers (AutoLogin). Off = clean single-account write.',
   help3: 'Press Login — Steam restarts with the injected session',
   help4: 'Saved accounts appear on the right for one-click login',
   help5: 'Reset Steam wipes config/userdata if something breaks',
@@ -74,7 +78,11 @@ const en: Dict = {
   accountNotFound: 'account not found',
   accountNameRequired: 'account name required (use login----token)',
   loggedInAs: 'Logged in as {name}',
-  loggedInToken: 'Logged in as {name} · token valid {ttl}',
+  loggedInToken: 'Logged in as {name} · token valid until {until}',
+  validUntil: 'valid until {until}',
+  successTitle: 'Success',
+  errorTitle: 'Error',
+  steamNotDetected: 'Warning: steam.exe was not detected after launch. Check the tray or Task Manager.',
 };
 
 const ru: Dict = {
@@ -82,7 +90,7 @@ const ru: Dict = {
   showInstructions: 'Инструкция',
   accountManagement: 'Управление аккаунтом',
   accountKeyPlaceholder: 'Вставьте ключ аккаунта...',
-  keepExisting: 'Сохранить текущие аккаунты Steam',
+  keepExisting: 'Сохранить другие логины Steam (multi ConnectCache)',
   login: 'Войти',
   working: 'Подождите…',
   hintEmpty: 'Аккаунтов пока нет. Вставьте ключ выше. Перед использованием прочитайте инструкцию.',
@@ -97,7 +105,7 @@ const ru: Dict = {
   resettingSteam: 'Сброс Steam...',
   instructions: 'Инструкция',
   help1: 'Вставьте ключ в формате login----eya_token',
-  help2: 'Не включайте «Сохранить текущие», если нужен чистый вход (как в оригинале)',
+  help2: '«Сохранить» = merge ConnectCache + loginusers (AutoLogin). Выкл = чистый вход одного аккаунта.',
   help3: 'Нажмите «Войти» — Steam перезапустится с новой сессией',
   help4: 'Сохранённые аккаунты справа — вход в один клик',
   help5: '«Сброс Steam» удаляет config/userdata, если что-то сломалось',
@@ -112,7 +120,11 @@ const ru: Dict = {
   accountNotFound: 'аккаунт не найден',
   accountNameRequired: 'нужен логин (формат login----token)',
   loggedInAs: 'Вход выполнен: {name}',
-  loggedInToken: 'Вход выполнен: {name} · токен ещё {ttl}',
+  loggedInToken: 'Вход выполнен: {name} · токен валиден до {until}',
+  validUntil: 'валиден до {until}',
+  successTitle: 'Успех',
+  errorTitle: 'Ошибка',
+  steamNotDetected: 'Внимание: steam.exe не найден после запуска. Проверьте трей или Диспетчер задач.',
 };
 
 const catalogs: Record<Lang, Dict> = { en, ru };
@@ -172,14 +184,30 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   if (m === 'account not found') return t(lang, 'accountNotFound');
   if (m.startsWith('account name required')) return t(lang, 'accountNameRequired');
 
-  // Logged in as NAME · token valid TTL
-  let re = /^Logged in as (.+?) · token valid (.+)$/;
-  let match = m.match(re);
-  if (match) return t(lang, 'loggedInToken', { name: match[1], ttl: match[2] });
+  const steamWarn = m.includes('warning: steam.exe not detected after launch');
+  const core = m.replace(/\s*·\s*warning: steam\.exe not detected after launch\s*/i, '').trim();
+
+  // Logged in as NAME · token valid until DATE
+  let re = /^Logged in as (.+?) · token valid until (.+)$/;
+  let match = core.match(re);
+  if (match) {
+    let out = t(lang, 'loggedInToken', { name: match[1], until: match[2] });
+    if (steamWarn) out += '\n\n' + t(lang, 'steamNotDetected');
+    return out;
+  }
+
+  // legacy duration form
+  re = /^Logged in as (.+?) · token valid (.+)$/;
+  match = m.match(re);
+  if (match) return t(lang, 'loggedInToken', { name: match[1], until: match[2] });
 
   re = /^Logged in as (.+)$/;
-  match = m.match(re);
-  if (match) return t(lang, 'loggedInAs', { name: match[1] });
+  match = core.match(re);
+  if (match) {
+    let out = t(lang, 'loggedInAs', { name: match[1] });
+    if (steamWarn) out += '\n\n' + t(lang, 'steamNotDetected');
+    return out;
+  }
 
   // common token errors stay readable; light-touch RU hints
   if (lang === 'ru') {
@@ -204,5 +232,9 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
 export function localizeExpiry(lang: Lang, exp: string): string {
   if (exp === 'expired/invalid') return t(lang, 'expiredInvalid');
   if (exp === 'unknown') return t(lang, 'unknown');
+  // Backend sends absolute date: "2026-09-15 14:30 UTC"
+  if (/^\d{4}-\d{2}-\d{2}/.test(exp)) {
+    return t(lang, 'validUntil', { until: exp });
+  }
   return exp;
 }

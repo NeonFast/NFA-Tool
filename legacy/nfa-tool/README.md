@@ -10,7 +10,7 @@ Production-oriented rewrite of Steam Cache Login in Go + Wails.
 - Saved accounts list with token TTL
 - Harvest tokens from current Steam ConnectCache
 - Reset Steam (config + userdata)
-- Single native `.exe` (no Python runtime)
+- Single native `.exe` (standalone binary)
 
 ## Build
 
@@ -43,5 +43,5 @@ frontend/          UI (HTML/CSS/JS)
 ## Notes
 
 - Windows only (DPAPI + registry)
-- JWT signature is not verified (same as original tool)
+- JWT signature is not verified
 - Tokens stored in `user_backup.json` next to the exe

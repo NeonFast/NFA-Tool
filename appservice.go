@@ -15,7 +15,7 @@ import (
 )
 
 // AppVersion is shown in the UI title bar.
-const AppVersion = "1.0.0"
+const AppVersion = "1.1.0"
 
 // AppService is the Wails v3 backend service.
 type AppService struct {
@@ -49,7 +49,13 @@ func NewAppService() *AppService {
 			}
 		}
 	}
-	return &AppService{store: storage.New(base)}
+	store, err := storage.New(base)
+	if err != nil {
+		// Fall back to cwd so the app still starts; operations will fail with clear errors if store is nil-checked.
+		// storage.New rarely fails; panic is worse for a GUI app.
+		store, _ = storage.New(".")
+	}
+	return &AppService{store: store}
 }
 
 func (s *AppService) GetVersion() string {
@@ -70,7 +76,7 @@ func (s *AppService) ListAccounts() ([]AccountDTO, error) {
 		dto := AccountDTO{Name: name, Valid: false, ExpiresIn: "unknown"}
 		if info, err := token.ParseAndValidate(tok); err == nil {
 			dto.Valid = true
-			dto.ExpiresIn = formatDuration(info.ExpiresIn)
+			dto.ExpiresIn = formatExpiryUntil(info.ExpiresAt)
 		} else {
 			dto.ExpiresIn = "expired/invalid"
 		}
@@ -82,18 +88,14 @@ func (s *AppService) ListAccounts() ([]AccountDTO, error) {
 func (s *AppService) LoginFromKey(accountKey string, keepExisting bool) Result {
 	account, rawTok, err := token.ParseAccountKey(accountKey)
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
 	info, err := token.ParseAndValidate(rawTok)
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
 	if account == "" {
-		return Result{OK: false, Message: "account name required (use login----token)"}
-	}
-
-	if harvested, err := steam.HarvestConnectCache(); err == nil {
-		_ = s.store.Merge(harvested)
+		return s.fail("account name required (use login----token)")
 	}
 
 	err = steam.Login(steam.LoginOptions{
@@ -103,31 +105,29 @@ func (s *AppService) LoginFromKey(accountKey string, keepExisting bool) Result {
 		KeepExisting: keepExisting,
 	})
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
 	_ = s.store.Put(account, info.Raw)
-	return Result{
-		OK:      true,
-		Message: fmt.Sprintf("Logged in as %s · token valid %s", account, formatDuration(info.ExpiresIn)),
+	msg := fmt.Sprintf("Logged in as %s · token valid until %s", account, formatExpiryUntil(info.ExpiresAt))
+	if !steam.IsSteamRunning() {
+		msg += " · warning: steam.exe not detected after launch"
 	}
+	return s.ok(msg)
 }
 
 func (s *AppService) LoginSaved(account string, keepExisting bool) Result {
-	m, err := s.store.Load()
+	tok, ok, err := s.store.Get(account)
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
-	tok, ok := m[account]
 	if !ok {
-		return Result{OK: false, Message: "account not found"}
+		return s.fail("account not found")
 	}
 	info, err := token.ParseAndValidate(tok)
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
-	if harvested, err := steam.HarvestConnectCache(); err == nil {
-		_ = s.store.Merge(harvested)
-	}
+
 	err = steam.Login(steam.LoginOptions{
 		AccountName:  account,
 		Token:        info.Raw,
@@ -135,9 +135,45 @@ func (s *AppService) LoginSaved(account string, keepExisting bool) Result {
 		KeepExisting: keepExisting,
 	})
 	if err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
-	return Result{OK: true, Message: fmt.Sprintf("Logged in as %s", account)}
+	_ = s.store.Put(account, info.Raw)
+	msg := fmt.Sprintf("Logged in as %s · token valid until %s", account, formatExpiryUntil(info.ExpiresAt))
+	if !steam.IsSteamRunning() {
+		msg += " · warning: steam.exe not detected after launch"
+	}
+	return s.ok(msg)
+}
+
+// Notify shows a native Windows message box. Frontend should pass already-translated title/message.
+func (s *AppService) Notify(success bool, title, message string) {
+	app := application.Get()
+	if app == nil {
+		return
+	}
+	if title == "" {
+		if success {
+			title = "Success"
+		} else {
+			title = "Error"
+		}
+	}
+	var dlg *application.MessageDialog
+	if success {
+		dlg = app.Dialog.Info().SetTitle(title).SetMessage(message)
+	} else {
+		dlg = app.Dialog.Error().SetTitle(title).SetMessage(message)
+	}
+	dlg.AddButton("OK")
+	dlg.Show()
+}
+
+func (s *AppService) ok(msg string) Result {
+	return Result{OK: true, Message: msg}
+}
+
+func (s *AppService) fail(msg string) Result {
+	return Result{OK: false, Message: msg}
 }
 
 func (s *AppService) DeleteAccount(account string) Result {
@@ -173,9 +209,9 @@ func (s *AppService) ResetSteam() Result {
 		return Result{OK: false, Message: "Cancelled"}
 	}
 	if err := steam.ResetSteam(); err != nil {
-		return Result{OK: false, Message: err.Error()}
+		return s.fail(err.Error())
 	}
-	return Result{OK: true, Message: "Steam has been reset"}
+	return s.ok("Steam has been reset")
 }
 
 func (s *AppService) WindowMinimise() {
@@ -192,18 +228,10 @@ func (s *AppService) WindowClose() {
 	}
 }
 
-func formatDuration(d time.Duration) string {
-	if d < 0 {
-		return "expired"
+// formatExpiryUntil returns a stable UTC timestamp for UI/i18n, e.g. 2026-09-15 14:30 UTC
+func formatExpiryUntil(t time.Time) string {
+	if t.IsZero() {
+		return "unknown"
 	}
-	days := int(d.Hours()) / 24
-	hours := int(d.Hours()) % 24
-	mins := int(d.Minutes()) % 60
-	if days > 0 {
-		return fmt.Sprintf("%dd %dh", days, hours)
-	}
-	if hours > 0 {
-		return fmt.Sprintf("%dh %dm", hours, mins)
-	}
-	return fmt.Sprintf("%dm", mins)
+	return t.UTC().Format("2006-01-02 15:04 UTC")
 }

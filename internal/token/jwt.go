@@ -14,10 +14,10 @@ type Info struct {
 	AccountHint string
 	SteamID     string
 	ExpiresIn   time.Duration
+	ExpiresAt   time.Time
 	Raw         string
 }
 
-// ParseAndValidate checks Steam refresh JWT structure (signature not verified — same as original).
 func ParseAndValidate(raw string) (*Info, error) {
 	raw = strings.TrimSpace(raw)
 	raw = strings.ReplaceAll(raw, " ", "")
@@ -78,6 +78,7 @@ func ParseAndValidate(raw string) (*Info, error) {
 	return &Info{
 		SteamID:   steamID,
 		ExpiresIn: remaining,
+		ExpiresAt: time.Unix(expUnix, 0).UTC(),
 		Raw:       raw,
 	}, nil
 }

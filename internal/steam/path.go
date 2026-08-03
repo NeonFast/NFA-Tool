@@ -14,93 +14,142 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-// InstallPath = Python get_steam_install_path (always kills if steam running when kill=true)
-func InstallPath(kill bool) (string, error) {
+func GetSteamInstallPath() (string, error)       { return getSteamInstallPath(true) }
+func GetSteamInstallPathNoKill() (string, error) { return getSteamInstallPath(false) }
+func InstallPath(kill bool) (string, error)      { return getSteamInstallPath(kill) }
+
+func getSteamInstallPath(kill bool) (string, error) {
+	// Prefer SteamPath (roster / shefu)
+	if k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Valve\Steam`, registry.QUERY_VALUE); err == nil {
+		if sp, _, err := k.GetStringValue("SteamPath"); err == nil && sp != "" {
+			k.Close()
+			dir := filepath.Clean(sp)
+			if _, err := os.Stat(filepath.Join(dir, "steam.exe")); err == nil {
+				if kill {
+					_ = KillSteam()
+				}
+				return dir, nil
+			}
+		} else {
+			k.Close()
+		}
+	}
+
 	if pid := findPID("steam.exe"); pid != 0 {
 		exe, err := processExePath(pid)
 		if err != nil {
 			return "", err
 		}
-		dir := filepath.Dir(exe)
 		if kill {
-			// Python: taskkill /f /im steam.exe + steamwebhelper, sleep 2
-			_ = exec.Command("taskkill", "/F", "/IM", "steam.exe").Run()
-			_ = exec.Command("taskkill", "/F", "/IM", "steamwebhelper.exe").Run()
-			time.Sleep(2 * time.Second)
+			_ = KillSteam()
 		}
-		return dir, nil
+		return filepath.Dir(exe), nil
 	}
 
-	// Python registry fallback
-	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\steam\Shell\Open\Command`, registry.QUERY_VALUE)
-	if err != nil {
-		return "", fmt.Errorf("steam not found: %w", err)
-	}
-	defer k.Close()
-	val, _, err := k.GetStringValue("")
-	if err != nil {
-		return "", err
-	}
-	val = strings.ReplaceAll(val, `"`, "")
-	// Python: path[:len-6] then [:len-9] → strip ' -- %1' and '\steam.exe'
-	if len(val) > 6 {
-		val = val[:len(val)-6]
-	}
-	if len(val) > 9 {
-		val = val[:len(val)-9]
-	}
-	dir := filepath.Clean(val)
-	if _, err := os.Stat(filepath.Join(dir, "steam.exe")); err != nil {
-		// safer parse fallback
-		if d, err2 := steamDirFromCommand(val); err2 == nil {
-			dir = d
-		} else {
-			return "", fmt.Errorf("steam directory invalid: %s", dir)
-		}
-	}
-	if kill {
-		_ = exec.Command("taskkill", "/F", "/IM", "steam.exe").Run()
-		_ = exec.Command("taskkill", "/F", "/IM", "steamwebhelper.exe").Run()
-		time.Sleep(2 * time.Second)
-	}
-	return dir, nil
+	return "", fmt.Errorf("steam not found — is it installed?")
 }
 
-func steamDirFromCommand(val string) (string, error) {
-	low := strings.ToLower(val)
-	if i := strings.Index(low, "steam.exe"); i >= 0 {
-		return filepath.Dir(val[:i+len("steam.exe")]), nil
+func GetLocalVDFPath() (string, error) {
+	app := os.Getenv("LOCALAPPDATA")
+	if app == "" {
+		app = os.Getenv("localappdata")
 	}
-	return "", fmt.Errorf("cannot parse")
+	if app == "" {
+		return "", fmt.Errorf("LOCALAPPDATA empty")
+	}
+	return filepath.Join(app, "Steam", "local.vdf"), nil
 }
 
-// LocalVDFPath = Python get_local_vdf_path
-func LocalVDFPath() (string, error) {
-	local := os.Getenv("LOCALAPPDATA")
-	if local == "" {
-		return "", fmt.Errorf("LOCALAPPDATA is empty")
-	}
-	return filepath.Join(local, "Steam", "local.vdf"), nil
-}
+func LocalVDFPath() (string, error) { return GetLocalVDFPath() }
 
-// KillSteam = Python taskkill pair + sleep
+// KillSteam — roster style: steam.exe + steamwebhelper with /T
 func KillSteam() error {
-	_ = exec.Command("taskkill", "/F", "/IM", "steam.exe").Run()
-	_ = exec.Command("taskkill", "/F", "/IM", "steamwebhelper.exe").Run()
-	time.Sleep(2 * time.Second)
+	runHidden("taskkill", "/F", "/IM", "steam.exe", "/T")
+	time.Sleep(400 * time.Millisecond)
+	runHidden("taskkill", "/F", "/IM", "steamwebhelper.exe", "/T")
+	time.Sleep(800 * time.Millisecond)
 	return nil
 }
 
-// LaunchSteam = Python subprocess.Popen(steam.exe, shell=True)
-func LaunchSteam(installDir string) error {
-	exe := filepath.Join(installDir, "steam.exe")
-	cmd := exec.Command(exe)
-	cmd.Dir = installDir
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	return cmd.Start()
+func runHidden(name string, args ...string) {
+	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW
+	_ = cmd.Run()
 }
 
-// SetAutoLoginUser = Python winreg AutoLoginUser
+// LaunchSteam — roster: DETACHED_PROCESS, direct steam.exe (not child chain via cmd)
+func LaunchSteam(installDir string) error {
+	exe := filepath.Join(installDir, "steam.exe")
+	if _, err := os.Stat(exe); err != nil {
+		return fmt.Errorf("steam.exe not found")
+	}
+	// Prefer unelevated via explorer when we are admin (UI otherwise broken)
+	if isProcessElevated() {
+		if err := launchViaExplorer(exe); err == nil {
+			time.Sleep(1 * time.Second)
+			if findPID("steam.exe") != 0 {
+				return nil
+			}
+		}
+	}
+	// roster fallback: detached direct spawn
+	cmd := exec.Command(exe)
+	cmd.Dir = installDir
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: 0x00000008, // DETACHED_PROCESS
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	time.Sleep(1 * time.Second)
+	return nil
+}
+
+func isProcessElevated() bool {
+	var sid *windows.SID
+	err := windows.AllocateAndInitializeSid(
+		&windows.SECURITY_NT_AUTHORITY,
+		2,
+		windows.SECURITY_BUILTIN_DOMAIN_RID,
+		windows.DOMAIN_ALIAS_RID_ADMINS,
+		0, 0, 0, 0, 0, 0, &sid,
+	)
+	if err != nil {
+		return false
+	}
+	defer windows.FreeSid(sid)
+	member, err := windows.Token(0).IsMember(sid)
+	return err == nil && member
+}
+
+func launchViaExplorer(target string) error {
+	windir := os.Getenv("SystemRoot")
+	if windir == "" {
+		windir = `C:\Windows`
+	}
+	explorer := filepath.Join(windir, "explorer.exe")
+	verb, _ := windows.UTF16PtrFromString("open")
+	file, _ := windows.UTF16PtrFromString(explorer)
+	params, _ := windows.UTF16PtrFromString(`"` + target + `"`)
+	ret, _, err := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteW").Call(
+		0,
+		uintptr(unsafe.Pointer(verb)),
+		uintptr(unsafe.Pointer(file)),
+		uintptr(unsafe.Pointer(params)),
+		0,
+		uintptr(windows.SW_SHOWNORMAL),
+	)
+	if ret <= 32 {
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("ShellExecute %d", ret)
+	}
+	return nil
+}
+
+func IsSteamRunning() bool { return findPID("steam.exe") != 0 }
+
 func SetAutoLoginUser(account string) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Valve\Steam`, registry.SET_VALUE)
 	if err != nil {

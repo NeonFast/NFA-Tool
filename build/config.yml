@@ -5,10 +5,10 @@ info:
   companyName: "NFA Tool"
   productName: "NFA Tool"
   productIdentifier: "com.nfatool.app"
-  description: "Steam cache login utility (Windows)"
+  description: "Steam ConnectCache token login for Windows"
   copyright: "© 2026 NFA Tool contributors"
-  comments: "Desktop client for Steam ConnectCache token login"
-  version: "1.0.0"
+  comments: "Production build — see NOTICE.md for credits"
+  version: "1.1.0"
 
 dev_mode:
   root_path: .
@@ -21,15 +21,16 @@ dev_mode:
       - frontend/node_modules
       - bin
       - .task
+      - legacy
     file:
       - .DS_Store
       - user_backup.json
+      - accounts.db
     watchedExtension:
       - "*.go"
       - "*.js"
       - "*.ts"
       - "*.svelte"
-      - "*.vue"
       - "*.css"
       - "*.html"
       - "*.json"

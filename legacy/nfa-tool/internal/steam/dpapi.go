@@ -14,7 +14,7 @@ var (
 	procCryptUnprotectData = crypt32.NewProc("CryptUnprotectData")
 )
 
-// Matches Python win32crypt flags: UI_FORBIDDEN (1) | AUDIT (16) = 17
+// CryptProtectData flags: 0x11
 const cryptProtectFlags = 0x11
 
 type dataBlob struct {
@@ -47,7 +47,7 @@ func (b *dataBlob) free() {
 	}
 }
 
-// EncryptToken encrypts a Steam refresh token the same way the original tool does.
+// EncryptToken encrypts a Steam refresh token a Steam ConnectCache refresh token.
 func EncryptToken(token, accountName string) (string, error) {
 	in := newBlob([]byte(token))
 	entropy := newBlob([]byte(accountName))

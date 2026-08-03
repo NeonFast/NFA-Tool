@@ -3,19 +3,27 @@ package steam
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+// Match kWAYTV/roster + legacy Python:
+// description bytes are UTF-16LE "BObfuscateBuffer\0", then re-encoded the same
+// quirky way (utf8_lossy → utf16), flags 0x11.
+var descriptionRaw = []byte{
+	'B', 0, 'O', 0, 'b', 0, 'f', 0, 'u', 0, 's', 0, 'c', 0, 'a', 0, 't', 0, 'e', 0,
+	'B', 0, 'u', 0, 'f', 0, 'f', 0, 'e', 0, 'r', 0, 0, 0,
+}
+
+const cryptProtectFlags = 0x11
 
 var (
 	crypt32                = windows.NewLazySystemDLL("crypt32.dll")
 	procCryptProtectData   = crypt32.NewProc("CryptProtectData")
 	procCryptUnprotectData = crypt32.NewProc("CryptUnprotectData")
 )
-
-// Python: flags=17
-const cryptProtectFlags = 0x11
 
 type dataBlob struct {
 	cbData uint32
@@ -44,22 +52,41 @@ func (b *dataBlob) free() {
 	if b != nil && b.pbData != nil {
 		_, _ = windows.LocalFree(windows.Handle(unsafe.Pointer(b.pbData)))
 		b.pbData = nil
-		b.cbData = 0
 	}
 }
 
-// EncryptToken = Python steam_encrypt
+// descriptionWide matches roster: String::from_utf8_lossy(UTF16LE).encode_utf16() + NUL
+func descriptionWide() []uint16 {
+	// interpret raw UTF-16LE bytes as a Go string (with embedded NULs), then to UTF-16
+	s := string(descriptionRaw)
+	u := utf16Encode(s)
+	u = append(u, 0)
+	return u
+}
+
+func utf16Encode(s string) []uint16 {
+	// encode each Unicode code point; embedded \x00 becomes wchar 0 (early terminate for WinAPI)
+	out := make([]uint16, 0, len(s)+1)
+	for _, r := range s {
+		if r < 0x10000 {
+			out = append(out, uint16(r))
+		} else {
+			r -= 0x10000
+			out = append(out, uint16(0xD800+(r>>10)), uint16(0xDC00+(r&0x3FF)))
+		}
+	}
+	return out
+}
+
 func EncryptToken(token, accountName string) (string, error) {
 	in := newBlob([]byte(token))
 	entropy := newBlob([]byte(accountName))
-	descr, err := windows.UTF16PtrFromString("BObfuscateBuffer")
-	if err != nil {
-		return "", err
-	}
+	desc := descriptionWide()
+
 	var out dataBlob
 	r1, _, callErr := procCryptProtectData.Call(
 		uintptr(unsafe.Pointer(in)),
-		uintptr(unsafe.Pointer(descr)),
+		uintptr(unsafe.Pointer(&desc[0])),
 		uintptr(unsafe.Pointer(entropy)),
 		0, 0,
 		uintptr(cryptProtectFlags),
@@ -75,19 +102,35 @@ func EncryptToken(token, accountName string) (string, error) {
 	return hex.EncodeToString(out.bytes()), nil
 }
 
-// DecryptToken = Python steam_decrypt (no entropy)
-func DecryptToken(encryptedHex string) (string, error) {
-	raw, err := hex.DecodeString(encryptedHex)
+// DecryptToken decrypts ConnectCache blob (with account entropy — roster style).
+func DecryptToken(encryptedHex, accountName string) (string, error) {
+	raw, err := hex.DecodeString(strings.TrimSpace(encryptedHex))
 	if err != nil {
 		return "", err
 	}
 	in := newBlob(raw)
+	var entPtr uintptr
+	var ent *dataBlob
+	if accountName != "" {
+		ent = newBlob([]byte(accountName))
+		entPtr = uintptr(unsafe.Pointer(ent))
+	}
 	var out dataBlob
 	r1, _, callErr := procCryptUnprotectData.Call(
 		uintptr(unsafe.Pointer(in)),
-		0, 0, 0, 0, 0,
+		0,
+		entPtr,
+		0, 0, 0,
 		uintptr(unsafe.Pointer(&out)),
 	)
+	if r1 == 0 {
+		// fallback without entropy (some blobs)
+		r1, _, callErr = procCryptUnprotectData.Call(
+			uintptr(unsafe.Pointer(in)),
+			0, 0, 0, 0, 0,
+			uintptr(unsafe.Pointer(&out)),
+		)
+	}
 	if r1 == 0 {
 		if callErr != nil {
 			return "", fmt.Errorf("CryptUnprotectData: %w", callErr)
@@ -95,5 +138,5 @@ func DecryptToken(encryptedHex string) (string, error) {
 		return "", fmt.Errorf("CryptUnprotectData failed")
 	}
 	defer out.free()
-	return string(out.bytes()), nil
+	return strings.Trim(string(out.bytes()), "\x00"), nil
 }
