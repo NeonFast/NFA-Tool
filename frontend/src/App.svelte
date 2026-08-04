@@ -36,7 +36,7 @@
   };
 
   let appName = $state('NFA Tool Recode v2');
-  let version = $state('2.0.1');
+  let version = $state('2.0.2');
   let lang = $state<Lang>(loadLang());
   let accountKey = $state('');
   let keepExisting = $state(false);

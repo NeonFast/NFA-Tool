@@ -28,8 +28,10 @@ Parts of this codebase were **polished and refined with assistance from AI**
 
 ## Security
 
-- Accounts/tokens are stored in `accounts.db` (SQLite) next to the executable.
-- Do **not** commit `accounts.db`, `user_backup.json`, logs, or tokens to Git.
+- Accounts are stored in `accounts.db`; token values are sealed with **Windows DPAPI**
+  (current user + app entropy). A stolen DB file alone does not expose JWTs.
+- Same-user malware can still call DPAPI — this stops casual file theft, not rootkits.
+- Do **not** commit `accounts.db`, logs, or tokens to Git.
 - The app requests **Administrator** rights on Windows (UAC) so it can update
   Steam config under Program Files; Steam itself is launched **without**
   elevation (elevated Steam often fails to show a normal UI).

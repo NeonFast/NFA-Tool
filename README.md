@@ -4,7 +4,7 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 
 **Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
 
-**Version:** 2.0.1
+**Version:** 2.0.2
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
@@ -95,8 +95,10 @@ build/
 
 ## Security
 
-- Treat `accounts.db` like a password file.
-- Do not commit tokens, DB files, or logs.
+- Tokens in `accounts.db` are **DPAPI-encrypted** (Windows user + app key). Stealing the file alone is not enough.
+- Same-user malware can still decrypt — this is not antivirus.
+- Hot-update from GitHub Releases (in-app).
+- Do not commit DB files or logs.
 - Unofficial tool — use only with accounts/tokens you are allowed to use.
 
 ## License

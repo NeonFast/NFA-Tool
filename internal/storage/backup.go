@@ -16,7 +16,7 @@ import (
 const dbFileName = "accounts.db"
 const oldJSONName = "user_backup.json"
 
-// Store persists account -> refresh token in SQLite next to the executable.
+// Store persists account -> DPAPI-sealed refresh token in SQLite.
 type Store struct {
 	path string
 	db   *sql.DB
@@ -35,7 +35,6 @@ func New(baseDir string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Reasonable defaults for a local desktop DB
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(0)
@@ -45,8 +44,8 @@ func New(baseDir string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	// One-time import from older JSON backup if present
 	_ = s.migrateOldJSON(filepath.Join(baseDir, oldJSONName))
+	_ = s.resealPlaintextRows()
 	return s, nil
 }
 
@@ -72,10 +71,48 @@ func (s *Store) init() error {
 	return nil
 }
 
+// resealPlaintextRows migrates any old plaintext JWT rows to DPAPI blobs.
+func (s *Store) resealPlaintextRows() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	rows, err := s.db.Query(`SELECT name, token FROM accounts`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type pair struct{ name, tok string }
+	var todo []pair
+	for rows.Next() {
+		var name, tok string
+		if err := rows.Scan(&name, &tok); err != nil {
+			return err
+		}
+		if !strings.HasPrefix(tok, tokenPrefix) {
+			todo = append(todo, pair{name, tok})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, p := range todo {
+		sealed, err := sealToken(p.tok)
+		if err != nil {
+			continue
+		}
+		_, _ = s.db.Exec(
+			`UPDATE accounts SET token=?, updated_at=? WHERE name=? COLLATE NOCASE`,
+			sealed, time.Now().Unix(), p.name,
+		)
+	}
+	return nil
+}
+
 func (s *Store) migrateOldJSON(jsonPath string) error {
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
-		return nil // nothing to import
+		return nil
 	}
 	m := map[string]string{}
 	if err := json.Unmarshal(data, &m); err != nil || len(m) == 0 {
@@ -84,12 +121,10 @@ func (s *Store) migrateOldJSON(jsonPath string) error {
 	if err := s.Merge(m); err != nil {
 		return err
 	}
-	// Keep a backup copy, remove active JSON so we don't re-import forever
 	_ = os.Rename(jsonPath, jsonPath+".migrated")
 	return nil
 }
 
-// Load returns all accounts as name -> token.
 func (s *Store) Load() (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -102,29 +137,37 @@ func (s *Store) Load() (map[string]string, error) {
 
 	out := map[string]string{}
 	for rows.Next() {
-		var name, token string
-		if err := rows.Scan(&name, &token); err != nil {
+		var name, stored string
+		if err := rows.Scan(&name, &stored); err != nil {
 			return nil, err
 		}
-		out[name] = token
+		plain, err := openToken(stored)
+		if err != nil {
+			// skip undecryptable rows (other user / corrupted)
+			continue
+		}
+		out[name] = plain
 	}
 	return out, rows.Err()
 }
 
-// Get returns one token by account name.
 func (s *Store) Get(account string) (string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var token string
-	err := s.db.QueryRow(`SELECT token FROM accounts WHERE name = ? COLLATE NOCASE`, account).Scan(&token)
+	var stored string
+	err := s.db.QueryRow(`SELECT token FROM accounts WHERE name = ? COLLATE NOCASE`, account).Scan(&stored)
 	if err == sql.ErrNoRows {
 		return "", false, nil
 	}
 	if err != nil {
 		return "", false, err
 	}
-	return token, true, nil
+	plain, err := openToken(stored)
+	if err != nil {
+		return "", false, err
+	}
+	return plain, true, nil
 }
 
 func (s *Store) Put(account, token string) error {
@@ -132,12 +175,16 @@ func (s *Store) Put(account, token string) error {
 	if account == "" || token == "" {
 		return fmt.Errorf("empty account or token")
 	}
+	sealed, err := sealToken(token)
+	if err != nil {
+		return err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, err := s.db.Exec(
+	_, err = s.db.Exec(
 		`INSERT INTO accounts(name, token, updated_at) VALUES(?, ?, ?)
 		 ON CONFLICT(name) DO UPDATE SET token=excluded.token, updated_at=excluded.updated_at`,
-		account, token, time.Now().Unix(),
+		account, sealed, time.Now().Unix(),
 	)
 	return err
 }
@@ -177,7 +224,11 @@ func (s *Store) Merge(extra map[string]string) error {
 		if name == "" || tok == "" {
 			continue
 		}
-		if _, err := stmt.Exec(name, tok, now); err != nil {
+		sealed, err := sealToken(tok)
+		if err != nil {
+			return err
+		}
+		if _, err := stmt.Exec(name, sealed, now); err != nil {
 			return err
 		}
 	}

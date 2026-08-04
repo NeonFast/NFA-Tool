@@ -206,12 +206,13 @@ func ApplyDownload(exeURL string) error {
 	f.Close()
 
 	// batch: wait for this pid to exit, replace exe, start new, delete self
+	// Quoted paths — required when install dir has spaces.
 	pid := os.Getpid()
 	script := fmt.Sprintf(`@echo off
 setlocal
-set PID=%d
-set TARGET=%s
-set NEW=%s
+set "PID=%d"
+set "TARGET=%s"
+set "NEW=%s"
 :wait
 tasklist /FI "PID eq %%PID%%" 2>NUL | find "%%PID%%" >NUL
 if not errorlevel 1 (
@@ -221,7 +222,7 @@ if not errorlevel 1 (
 timeout /t 1 /nobreak >NUL
 del /F /Q "%%TARGET%%" >NUL 2>&1
 move /Y "%%NEW%%" "%%TARGET%%" >NUL
-start "" "%%TARGET%%"
+if exist "%%TARGET%%" start "" "%%TARGET%%"
 del /F /Q "%%~f0" >NUL 2>&1
 `, pid, cur, tmp)
 
