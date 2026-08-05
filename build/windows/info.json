@@ -1,10 +1,10 @@
 {
 	"fixed": {
-		"file_version": "2.0.2"
+		"file_version": "2.0.3"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "2.0.2",
+			"ProductVersion": "2.0.3",
 			"CompanyName": "NFA Tool",
 			"FileDescription": "NFA Tool Recode v2 — Steam token login",
 			"LegalCopyright": "© 2026 NFA Tool contributors",

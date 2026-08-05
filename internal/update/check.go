@@ -205,35 +205,41 @@ func ApplyDownload(exeURL string) error {
 	}
 	f.Close()
 
-	// batch: wait for this pid to exit, replace exe, start new, delete self
-	// Quoted paths — required when install dir has spaces.
+	// batch: wait for this pid to exit, replace exe, start new.
+	// Self-delete is deferred to a child cmd so this script does not error with
+	// "The batch file cannot be found" after deleting itself mid-run.
 	pid := os.Getpid()
-	script := fmt.Sprintf(`@echo off
-setlocal
-set "PID=%d"
-set "TARGET=%s"
-set "NEW=%s"
-:wait
-tasklist /FI "PID eq %%PID%%" 2>NUL | find "%%PID%%" >NUL
-if not errorlevel 1 (
-  timeout /t 1 /nobreak >NUL
-  goto wait
-)
-timeout /t 1 /nobreak >NUL
-del /F /Q "%%TARGET%%" >NUL 2>&1
-move /Y "%%NEW%%" "%%TARGET%%" >NUL
-if exist "%%TARGET%%" start "" "%%TARGET%%"
-del /F /Q "%%~f0" >NUL 2>&1
-`, pid, cur, tmp)
+	script := fmt.Sprintf("@echo off\r\n"+
+		"setlocal EnableExtensions\r\n"+
+		"set \"PID=%d\"\r\n"+
+		"set \"TARGET=%s\"\r\n"+
+		"set \"NEW=%s\"\r\n"+
+		":wait\r\n"+
+		"tasklist /FI \"PID eq %%PID%%\" 2>NUL | findstr /C:\" %%PID%% \" >NUL\r\n"+
+		"if not errorlevel 1 (\r\n"+
+		"  >NUL 2>&1 timeout /t 1 /nobreak\r\n"+
+		"  goto wait\r\n"+
+		")\r\n"+
+		">NUL 2>&1 timeout /t 1 /nobreak\r\n"+
+		"del /F /Q \"%%TARGET%%\" >NUL 2>&1\r\n"+
+		"move /Y \"%%NEW%%\" \"%%TARGET%%\" >NUL 2>&1\r\n"+
+		"if exist \"%%TARGET%%\" start \"\" \"%%TARGET%%\"\r\n"+
+		"start \"\" /B cmd /d /c \"ping -n 2 127.0.0.1 >nul & del /f /q \"\"%%~f0\"\"\"\r\n"+
+		"exit /b 0\r\n",
+		pid, cur, tmp)
 
 	if err := os.WriteFile(bat, []byte(script), 0o755); err != nil {
 		_ = os.Remove(tmp)
 		return err
 	}
 
-	cmd := exec.Command("cmd", "/C", "start", "", "/MIN", bat)
+	// Run hidden — no console window for the user to close.
+	cmd := exec.Command("cmd", "/d", "/c", bat)
 	cmd.Dir = dir
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
 	if err := cmd.Start(); err != nil {
 		_ = os.Remove(tmp)
 		_ = os.Remove(bat)
