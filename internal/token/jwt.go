@@ -83,11 +83,21 @@ func ParseAndValidate(raw string) (*Info, error) {
 	}, nil
 }
 
-// ParseAccountKey accepts "login----token" or bare token.
+// ParsedKey is one account line from bulk import.
+type ParsedKey struct {
+	Account string
+	Token   string
+}
+
+// ParseAccountKey accepts "login----token" or bare token (single line).
 func ParseAccountKey(input string) (account string, token string, err error) {
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return "", "", fmt.Errorf("empty input")
+	}
+	// bulk paste: take first non-empty line only for single-login path
+	if i := strings.IndexAny(input, "\r\n"); i >= 0 {
+		input = strings.TrimSpace(input[:i])
 	}
 
 	// Common marketplace format: user----pass----token or user----token
@@ -111,6 +121,55 @@ func ParseAccountKey(input string) (account string, token string, err error) {
 		return "", input, nil
 	}
 	return "", "", fmt.Errorf("invalid input format (use login----token)")
+}
+
+// ParseBulkKeys parses multi-line export text (login----token per line).
+// Empty lines and lines starting with # are skipped.
+func ParseBulkKeys(input string) ([]ParsedKey, []string) {
+	var out []ParsedKey
+	var errs []string
+	seen := map[string]bool{}
+	for _, line := range strings.Split(input, "\n") {
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		acc, tok, err := ParseAccountKey(line)
+		if err != nil {
+			errs = append(errs, truncateErr(line, err))
+			continue
+		}
+		if acc == "" {
+			errs = append(errs, truncateErr(line, fmt.Errorf("account name required")))
+			continue
+		}
+		if _, err := ParseAndValidate(tok); err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", acc, err))
+			continue
+		}
+		key := strings.ToLower(acc)
+		if seen[key] {
+			// last wins — replace previous
+			for i := range out {
+				if strings.EqualFold(out[i].Account, acc) {
+					out[i].Token = tok
+					break
+				}
+			}
+			continue
+		}
+		seen[key] = true
+		out = append(out, ParsedKey{Account: acc, Token: tok})
+	}
+	return out, errs
+}
+
+func truncateErr(line string, err error) string {
+	s := line
+	if len(s) > 48 {
+		s = s[:48] + "…"
+	}
+	return fmt.Sprintf("%s: %v", s, err)
 }
 
 func looksLikeJWT(s string) bool {

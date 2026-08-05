@@ -114,6 +114,20 @@ export function ImportGoogleCredentials(): $CancellablePromise<$models.Result> {
 }
 
 /**
+ * ImportTokens imports multi-line login----token text into the local store (no Steam login).
+ */
+export function ImportTokens(text: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3151963245, text);
+}
+
+/**
+ * ImportTokensFromFile opens a .txt file and imports login----token lines.
+ */
+export function ImportTokensFromFile(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3327349275);
+}
+
+/**
  * InstallUpdate downloads the release exe and restarts into it.
  */
 export function InstallUpdate(downloadURL: string): $CancellablePromise<$models.Result> {

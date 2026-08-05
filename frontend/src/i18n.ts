@@ -59,6 +59,13 @@ export type Dict = {
   exportNone: string;
   exportCopied: string;
   exportOk: string;
+  exportWhere: string;
+  exportToFile: string;
+  exportToClipboard: string;
+  importBtn: string;
+  importFile: string;
+  importNone: string;
+  importOk: string;
   exportDrive: string;
   driveTitle: string;
   driveConnect: string;
@@ -112,6 +119,10 @@ export type Dict = {
   driveGuideT7: string;
   driveGuideT8: string;
   driveOpenGuide: string;
+  settings: string;
+  settingsApp: string;
+  settingsDrive: string;
+  settingsLang: string;
   help6: string;
 };
 
@@ -134,7 +145,7 @@ const en: Dict = {
   loggingInAs: 'Logging in as {name}...',
   resettingSteam: 'Resetting Steam...',
   instructions: 'Instructions',
-  help1: 'Paste your key as login----token',
+  help1: 'Paste a key as login----token, or import many from a .txt file',
   help2: 'If needed, turn on “Keep other Steam accounts”',
   help3: 'Press Login — Steam will restart and sign you in',
   help4: 'Saved accounts on the right can be used again anytime',
@@ -173,6 +184,13 @@ const en: Dict = {
   exportNone: 'Select accounts to export, or use Export all',
   exportCopied: 'Copied to clipboard',
   exportOk: 'Export done',
+  exportWhere: 'Export to',
+  exportToFile: 'Save as file…',
+  exportToClipboard: 'Copy to clipboard',
+  importBtn: 'Import',
+  importFile: 'Import from file…',
+  importNone: 'No valid accounts to import',
+  importOk: 'Import completed',
   exportDrive: 'Google Drive',
   driveTitle: 'Google Drive export',
   driveConnect: 'Connect Google',
@@ -191,28 +209,28 @@ const en: Dict = {
   driveHelp2: 'Google Auth platform → Audience → Test users → add your Gmail',
   driveHelp3: 'Google Auth platform → Clients → Create client → Desktop app → copy ID / JSON here',
   driveHelp4: 'Save → Connect Google → allow in browser → Upload to Drive',
-  driveWaiting: 'Waiting for Google login in the browser… You can Cancel anytime.',
+  driveWaiting: 'Waiting for Google sign-in in the browser… You may press Cancel at any time.',
   cancel: 'Cancel',
   close: 'Close',
-  driveTutorialTitle: 'How to set up Google Drive (one-time)',
-  driveStep1: 'Open https://console.cloud.google.com and sign in with YOUR Google account (the one that owns the Drive).',
-  driveStep2: 'Create a project: top bar project picker (folder icon / project name) → New Project → name e.g. NFA-Tool → Create. Wait until it finishes, then SELECT that project in the same picker (important!).',
-  driveStep3: 'If you already have a project: open the same picker → select it. All next steps must be in THIS project.',
-  driveStep4: 'Enable Drive API: button “Drive API” below → Enable. Same via menu: ☰ → APIs & Services → Library → search “Google Drive API” → Enable. (APIs & Services still exists and works.)',
-  driveStep5: 'OAuth setup (new UI): ☰ → Google Auth platform → Branding. If “not configured yet” → Get Started. App name: NFA Tool. Support email + contact email: your Gmail. Audience: External → agree → Create.',
-  driveStep6: 'Test users (required while Testing): ☰ → Google Auth platform → Audience → Test users → Add users → your Gmail → Save. Without this Google shows access_denied / “not completed verification”.',
-  driveStep7: 'Optional scopes: Google Auth platform → Data Access → Add or remove scopes → “…/auth/drive.file” if you want it listed → Save. The app requests drive.file anyway.',
-  driveStep8: 'Create Desktop client: ☰ → Google Auth platform → Clients → Create client → Application type: Desktop app → name → Create. (Alt path still works: ☰ → APIs & Services → Credentials → Create credentials → OAuth client ID → Desktop app.)',
-  driveStep9: 'Open the client → copy Client ID (+ Client secret if shown) or Download JSON. In this window: paste fields or Import JSON → Save.',
-  driveStep10: 'In NFA Tool: Connect Google → browser opens → choose the SAME Gmail as Test user → Allow.',
-  driveStep11: 'Upload to Drive. File appears in your Drive root. Stuck on login screen → Cancel / ✕ anytime.',
-  driveTipTestUsers: 'Status Testing = only emails under Google Auth platform → Audience → Test users. Add yourself first.',
-  driveTipOwnProject: 'Each person: own Cloud project + own Desktop client + own email as Test user. No Google verification needed for personal use.',
-  driveTipDesktop: 'Client type = Desktop app only. Not Web application.',
-  driveTipApisServices: 'Both menus are real: “Google Auth platform” (Branding / Audience / Clients) and classic “APIs & Services” (Library, Credentials). Use either; pick the project first.',
+  driveTutorialTitle: 'Google Drive setup (one-time)',
+  driveStep1: 'Open https://console.cloud.google.com and sign in with your Google account (the one whose Drive you intend to use).',
+  driveStep2: 'Create a project: use the project picker at the top (folder icon / project name) → New Project → enter a name, e.g. NFA-Tool → Create. Wait until creation finishes, then select that project in the same picker.',
+  driveStep3: 'If you already have a project: open the same picker and select it. Complete all following steps in this project only.',
+  driveStep4: 'Enable the Drive API: use the “Drive API” button below → Enable. Alternatively: ☰ → APIs & Services → Library → search “Google Drive API” → Enable. (APIs & Services remains available.)',
+  driveStep5: 'OAuth setup (current UI): ☰ → Google Auth platform → Branding. If you see “not configured yet”, click Get Started. App name: NFA Tool. Support and contact email: your Gmail. Audience: External → accept the policy → Create.',
+  driveStep6: 'Test users (required while in Testing): ☰ → Google Auth platform → Audience → Test users → Add users → add your Gmail → Save. Without this step Google returns access_denied / “not completed verification”.',
+  driveStep7: 'Scopes (optional): Google Auth platform → Data Access → Add or remove scopes → “…/auth/drive.file” → Save. The application requests drive.file regardless.',
+  driveStep8: 'Desktop client: ☰ → Google Auth platform → Clients → Create client → Application type: Desktop app → enter a name → Create. (Alternative path: ☰ → APIs & Services → Credentials → Create credentials → OAuth client ID → Desktop app.)',
+  driveStep9: 'Open the created client → copy the Client ID (and Client secret if shown) or Download JSON. In this window, paste the values or use Import JSON → Save.',
+  driveStep10: 'In NFA Tool: Connect Google → a browser window opens → choose the same Gmail as in Test users → Allow.',
+  driveStep11: 'Upload to Drive. The file appears in the root of your Drive. If sign-in stalls, press Cancel or ✕ at any time.',
+  driveTipTestUsers: 'While status is Testing, only emails listed under Google Auth platform → Audience → Test users may sign in. Add yourself first.',
+  driveTipOwnProject: 'Each user should create their own Cloud project, Desktop client, and list their email as a Test user. Google verification is not required for personal use.',
+  driveTipDesktop: 'Client type must be Desktop app only. Web application is not suitable.',
+  driveTipApisServices: 'Both areas are valid: “Google Auth platform” (Branding / Audience / Clients) and classic “APIs & Services” (Library, Credentials). Always select the correct project first.',
   driveOpenConsole: 'OAuth Clients',
-  driveShowTutorial: 'Show full tutorial',
-  driveHideTutorial: 'Hide tutorial',
+  driveShowTutorial: 'Show full guide',
+  driveHideTutorial: 'Hide guide',
   driveGuideNext: 'Next',
   driveGuideBack: 'Back',
   driveGuideDone: 'Done',
@@ -221,72 +239,83 @@ const en: Dict = {
   driveGuideT2: 'Create a project',
   driveGuideT3: 'Enable Google Drive API',
   driveGuideT4: 'Configure OAuth (Branding)',
-  driveGuideT5: 'Add yourself as Test user',
-  driveGuideT6: 'Create Desktop OAuth client',
-  driveGuideT7: 'Paste credentials into NFA Tool',
+  driveGuideT5: 'Add yourself as a Test user',
+  driveGuideT6: 'Create a Desktop OAuth client',
+  driveGuideT7: 'Enter credentials in NFA Tool',
   driveGuideT8: 'Connect and upload',
   driveOpenGuide: 'Open setup guide',
-  help6: 'Google Drive: button Google Drive → Open setup guide (separate window)',
+  settings: 'Settings',
+  settingsApp: 'Application',
+  settingsDrive: 'Google Drive',
+  settingsLang: 'Interface language',
+  help6: 'Google Drive: Settings → configure once, then choose Drive when exporting',
 };
 
 const ru: Dict = {
   resetSteam: 'Сброс Steam',
   showInstructions: 'Инструкция',
   accountManagement: 'Управление аккаунтом',
-  accountKeyPlaceholder: 'Вставьте ключ аккаунта...',
+  accountKeyPlaceholder: 'Вставьте ключ аккаунта…',
   keepExisting: 'Сохранить другие аккаунты Steam',
   login: 'Войти',
-  working: 'Подождите…',
-  hintEmpty: 'Аккаунтов пока нет. Вставьте ключ выше.',
+  working: 'Пожалуйста, подождите…',
+  hintEmpty: 'Сохранённых аккаунтов пока нет. Вставьте ключ в поле выше.',
   hintHasAccounts: 'Выберите аккаунт справа или вставьте новый ключ.',
   savedAccounts: 'Сохранённые аккаунты',
   noSavedAccounts: 'Нет сохранённых аккаунтов',
   delete: 'Удалить',
   ready: 'Готово',
   enterKey: 'Введите ключ аккаунта',
-  loggingIn: 'Выполняется вход...',
-  loggingInAs: 'Вход в {name}...',
-  resettingSteam: 'Сброс Steam...',
+  loggingIn: 'Выполняется вход…',
+  loggingInAs: 'Выполняется вход: {name}…',
+  resettingSteam: 'Выполняется сброс Steam…',
   instructions: 'Инструкция',
-  help1: 'Вставьте ключ в формате login----token',
-  help2: 'При необходимости включите «Сохранить другие аккаунты Steam»',
-  help3: 'Нажмите «Войти» — Steam перезапустится и войдёт в аккаунт',
-  help4: 'Сохранённые аккаунты справа можно использовать снова',
-  help5: '«Сброс Steam» — только если что-то сломалось',
-  fullGuide: 'Полный гайд:',
+  help1: 'Вставьте ключ в формате login----token или импортируйте несколько из .txt файла',
+  help2: 'При необходимости включите параметр «Сохранить другие аккаунты Steam»',
+  help3: 'Нажмите «Войти» — Steam перезапустится и выполнит вход в аккаунт',
+  help4: 'Сохранённые аккаунты справа можно использовать повторно в любое время',
+  help5: 'Функцию «Сброс Steam» используйте только при возникновении неполадок',
+  fullGuide: 'Полное руководство:',
   gotIt: 'Понятно',
   lang: 'Язык',
-  expiredInvalid: 'истёк/невалиден',
+  expiredInvalid: 'истёк / недействителен',
   unknown: 'неизвестно',
   accountDeleted: 'Аккаунт удалён',
   cancelled: 'Отменено',
   steamReset: 'Steam сброшен',
   accountNotFound: 'аккаунт не найден',
-  accountNameRequired: 'нужен логин (формат login----token)',
+  accountNameRequired: 'укажите логин (формат login----token)',
   loggedInAs: 'Вход выполнен: {name}',
-  loggedInToken: 'Вход выполнен: {name} · токен валиден до {until}',
-  validUntil: 'валиден до {until}',
-  successTitle: 'Успех',
+  loggedInToken: 'Вход выполнен: {name} · токен действителен до {until}',
+  validUntil: 'действителен до {until}',
+  successTitle: 'Успешно',
   errorTitle: 'Ошибка',
-  steamNotDetected: 'Steam не запустился. Проверьте трей или Диспетчер задач.',
+  steamNotDetected: 'Steam не запустился. Проверьте область уведомлений или Диспетчер задач.',
   checkUpdate: 'Обновления',
   updateTitle: 'Доступно обновление',
-  updateAvailable: 'Доступна версия {latest} (у вас {current}).',
-  updateNone: 'У вас последняя версия.',
+  updateAvailable: 'Доступна версия {latest} (у вас установлена {current}).',
+  updateNone: 'У вас установлена актуальная версия.',
   updateNow: 'Обновить',
   updateLater: 'Позже',
   updateOpenPage: 'Страница загрузки',
-  updateInstalling: 'Скачиваем обновление… Приложение перезапустится.',
-  updateFailed: 'Не удалось обновить',
+  updateInstalling: 'Выполняется загрузка обновления… Приложение будет перезапущено.',
+  updateFailed: 'Не удалось выполнить обновление',
   updateChecking: 'Проверка обновлений…',
   export: 'Экспорт',
   exportAll: 'Экспорт всех',
   exportSelected: 'Экспорт выбранных',
   selectAll: 'Выбрать все',
   deselectAll: 'Снять выбор',
-  exportNone: 'Выберите аккаунты или нажмите «Экспорт всех»',
-  exportCopied: 'Скопировано в буфер',
-  exportOk: 'Экспорт готов',
+  exportNone: 'Выберите аккаунты или воспользуйтесь пунктом «Экспорт всех»',
+  exportCopied: 'Скопировано в буфер обмена',
+  exportOk: 'Экспорт выполнен',
+  exportWhere: 'Куда экспортировать',
+  exportToFile: 'Сохранить в файл…',
+  exportToClipboard: 'Копировать в буфер',
+  importBtn: 'Импорт',
+  importFile: 'Импорт из файла…',
+  importNone: 'Нет корректных аккаунтов для импорта',
+  importOk: 'Импорт выполнен',
   exportDrive: 'Google Drive',
   driveTitle: 'Экспорт в Google Drive',
   driveConnect: 'Подключить Google',
@@ -294,53 +323,57 @@ const ru: Dict = {
   driveConnected: 'Подключено',
   driveNotConnected: 'Не подключено',
   driveSetup: 'Настройка OAuth',
-  driveSetupHint: 'Один раз: создайте OAuth-клиент Desktop в Google Cloud и вставьте Client ID (и secret, если есть).',
+  driveSetupHint: 'Один раз настройте OAuth-клиент Desktop в Google Cloud и вставьте Client ID (и Client secret, если он указан).',
   driveClientId: 'Client ID',
   driveClientSecret: 'Client secret (необязательно)',
   driveSave: 'Сохранить',
   driveImport: 'Импорт JSON…',
   driveExport: 'Загрузить на Drive',
-  driveUploading: 'Загрузка на Google Drive…',
-  driveHelp1: 'Включи Google Drive API, затем Google Auth platform → Branding (при необходимости Get Started)',
-  driveHelp2: 'Google Auth platform → Audience → Test users → добавь свой Gmail',
-  driveHelp3: 'Google Auth platform → Clients → Create client → Desktop app → ID / JSON сюда',
-  driveHelp4: 'Сохранить → Подключить Google → разреши в браузере → Загрузить на Drive',
-  driveWaiting: 'Ждём вход Google в браузере… Можно нажать «Отмена» в любой момент.',
+  driveUploading: 'Выполняется загрузка на Google Drive…',
+  driveHelp1: 'Включите Google Drive API, затем откройте Google Auth platform → Branding (при необходимости Get Started)',
+  driveHelp2: 'Google Auth platform → Audience → Test users → добавьте ваш Gmail',
+  driveHelp3: 'Google Auth platform → Clients → Create client → Desktop app → скопируйте ID / JSON сюда',
+  driveHelp4: 'Сохраните → Подключите Google → подтвердите доступ в браузере → Загрузите на Drive',
+  driveWaiting: 'Ожидание входа Google в браузере… Вы можете нажать «Отмена» в любой момент.',
   cancel: 'Отмена',
   close: 'Закрыть',
-  driveTutorialTitle: 'Как настроить Google Drive (один раз)',
-  driveStep1: 'Открой https://console.cloud.google.com и войди СВОИМ Google (тот аккаунт, чей Drive нужен).',
-  driveStep2: 'Создать проект: сверху селектор проекта (иконка папки / имя проекта) → New Project → имя, напр. NFA-Tool → Create. Дождись создания и ОБЯЗАТЕЛЬНО выбери этот проект в том же селекторе.',
-  driveStep3: 'Если проект уже есть: тот же селектор сверху → выбери его. Все шаги ниже только в ЭТОМ проекте.',
-  driveStep4: 'Включить Drive API: кнопка «Drive API» ниже → Enable. Или через меню: ☰ → APIs & Services → Library → «Google Drive API» → Enable. (Раздел APIs & Services по-прежнему есть и работает.)',
-  driveStep5: 'OAuth (новый UI): ☰ → Google Auth platform → Branding. Если «not configured yet» → Get Started. App name: NFA Tool. Support + contact email: свой Gmail. Audience: External → согласие → Create.',
-  driveStep6: 'Test users (обязательно в Testing): ☰ → Google Auth platform → Audience → Test users → Add users → свой Gmail → Save. Без этого: access_denied / «not completed verification».',
-  driveStep7: 'Scopes по желанию: Google Auth platform → Data Access → Add or remove scopes → “…/auth/drive.file” → Save. Программа и так просит drive.file.',
-  driveStep8: 'Клиент Desktop: ☰ → Google Auth platform → Clients → Create client → Application type: Desktop app → имя → Create. (Старый путь тоже ок: ☰ → APIs & Services → Credentials → Create credentials → OAuth client ID → Desktop app.)',
-  driveStep9: 'Открой клиента → скопируй Client ID (+ secret) или Download JSON. Здесь: вставь в поля или «Импорт JSON» → Сохранить.',
-  driveStep10: 'В NFA Tool: Подключить Google → браузер → тот же Gmail, что в Test users → Allow.',
-  driveStep11: 'Загрузить на Drive. Файл в корне Drive. Зависло на входе — Отмена / ✕.',
-  driveTipTestUsers: 'Статус Testing = только email из Google Auth platform → Audience → Test users. Сначала добавь себя.',
-  driveTipOwnProject: 'Каждый: свой Cloud-проект + свой Desktop-клиент + свой email в Test users. Верификация Google для личного использования не нужна.',
-  driveTipDesktop: 'Тип клиента только Desktop app. Не Web application.',
-  driveTipApisServices: 'Оба меню живые: «Google Auth platform» (Branding / Audience / Clients) и классика «APIs & Services» (Library, Credentials). Главное — сначала выбрать нужный проект сверху.',
+  driveTutorialTitle: 'Настройка Google Drive (один раз)',
+  driveStep1: 'Откройте https://console.cloud.google.com и войдите в ваш аккаунт Google (тот, чей Drive требуется использовать).',
+  driveStep2: 'Создайте проект: в верхней панели селектор проекта (иконка папки / имя проекта) → New Project → укажите имя, например NFA-Tool → Create. Дождитесь завершения и обязательно выберите созданный проект в том же селекторе.',
+  driveStep3: 'Если проект уже создан: откройте тот же селектор сверху и выберите его. Все дальнейшие шаги выполняйте только в этом проекте.',
+  driveStep4: 'Включите Drive API: кнопка «Drive API» ниже → Enable. Либо через меню: ☰ → APIs & Services → Library → «Google Drive API» → Enable. (Раздел APIs & Services по-прежнему доступен.)',
+  driveStep5: 'Настройка OAuth (новый интерфейс): ☰ → Google Auth platform → Branding. Если отображается «not configured yet» — нажмите Get Started. App name: NFA Tool. Support и contact email: ваш Gmail. Audience: External → примите условия → Create.',
+  driveStep6: 'Test users (обязательно в режиме Testing): ☰ → Google Auth platform → Audience → Test users → Add users → укажите ваш Gmail → Save. Без этого Google возвращает access_denied / «not completed verification».',
+  driveStep7: 'Scopes (по желанию): Google Auth platform → Data Access → Add or remove scopes → «…/auth/drive.file» → Save. Приложение и так запрашивает scope drive.file.',
+  driveStep8: 'Клиент Desktop: ☰ → Google Auth platform → Clients → Create client → Application type: Desktop app → укажите имя → Create. (Альтернативный путь: ☰ → APIs & Services → Credentials → Create credentials → OAuth client ID → Desktop app.)',
+  driveStep9: 'Откройте созданного клиента → скопируйте Client ID (и Client secret, если отображается) либо Download JSON. В этом окне вставьте данные в поля или выполните «Импорт JSON» → Сохранить.',
+  driveStep10: 'В NFA Tool: «Подключить Google» → откроется браузер → выберите тот же Gmail, что указан в Test users → Allow.',
+  driveStep11: 'Загрузите файл на Drive. Он появится в корне вашего Drive. Если вход завис — нажмите «Отмена» или ✕.',
+  driveTipTestUsers: 'При статусе Testing вход доступен только адресам из Google Auth platform → Audience → Test users. Сначала добавьте себя.',
+  driveTipOwnProject: 'Каждому пользователю рекомендуется создать собственный проект Cloud, Desktop-клиент и указать свой email в Test users. Для личного использования верификация Google не требуется.',
+  driveTipDesktop: 'Тип клиента — только Desktop app. Тип Web application не подходит.',
+  driveTipApisServices: 'Доступны оба раздела: «Google Auth platform» (Branding / Audience / Clients) и классический «APIs & Services» (Library, Credentials). Важно сначала выбрать нужный проект в верхней панели.',
   driveOpenConsole: 'OAuth Clients',
-  driveShowTutorial: 'Показать полный туториал',
-  driveHideTutorial: 'Скрыть туториал',
+  driveShowTutorial: 'Показать полное руководство',
+  driveHideTutorial: 'Скрыть руководство',
   driveGuideNext: 'Далее',
   driveGuideBack: 'Назад',
   driveGuideDone: 'Готово',
   driveGuideStepOf: 'Шаг {n} из {total}',
   driveGuideT1: 'Вход в Google Cloud',
-  driveGuideT2: 'Создать проект',
-  driveGuideT3: 'Включить Google Drive API',
-  driveGuideT4: 'Настроить OAuth (Branding)',
-  driveGuideT5: 'Добавить себя в Test users',
-  driveGuideT6: 'Создать Desktop OAuth-клиент',
-  driveGuideT7: 'Вставить данные в NFA Tool',
-  driveGuideT8: 'Подключить и загрузить',
-  driveOpenGuide: 'Открыть гайд',
-  help6: 'Google Drive: кнопка Google Drive → «Открыть гайд» (отдельное окно)',
+  driveGuideT2: 'Создание проекта',
+  driveGuideT3: 'Включение Google Drive API',
+  driveGuideT4: 'Настройка OAuth (Branding)',
+  driveGuideT5: 'Добавление себя в Test users',
+  driveGuideT6: 'Создание Desktop OAuth-клиента',
+  driveGuideT7: 'Ввод данных в NFA Tool',
+  driveGuideT8: 'Подключение и загрузка',
+  driveOpenGuide: 'Открыть руководство',
+  settings: 'Настройки',
+  settingsApp: 'Приложение',
+  settingsDrive: 'Google Drive',
+  settingsLang: 'Язык интерфейса',
+  help6: 'Google Drive: Настройки → настройте один раз, затем выбирайте Drive при экспорте',
 };
 
 const catalogs: Record<Lang, Dict> = { en, ru };
@@ -399,19 +432,26 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   if (m === 'Steam has been reset') return t(lang, 'steamReset');
   if (m === 'account not found') return t(lang, 'accountNotFound');
   if (m === 'no accounts to export') return t(lang, 'exportNone');
+  if (m === 'no accounts to import') return t(lang, 'importNone');
+  if (m.startsWith('Imported ')) {
+    return m.replace(/^Imported /, lang === 'ru' ? 'Импортировано: ' : 'Imported ');
+  }
+  if (m.startsWith('import failed')) {
+    return lang === 'ru' ? m.replace(/^import failed/, 'Импорт не выполнен') : m;
+  }
   if (m === 'Google OAuth not configured') {
     return lang === 'ru'
-      ? 'Сначала настройте Google OAuth (Client ID)'
-      : 'Configure Google OAuth first (Client ID)';
+      ? 'Сначала настройте Google OAuth (укажите Client ID)'
+      : 'Please configure Google OAuth first (Client ID)';
   }
   if (m === 'Google OAuth saved') {
-    return lang === 'ru' ? 'OAuth сохранён' : 'OAuth saved';
+    return lang === 'ru' ? 'Данные OAuth сохранены' : 'OAuth credentials saved';
   }
   if (m === 'Google OAuth imported') {
-    return lang === 'ru' ? 'OAuth импортирован' : 'OAuth imported';
+    return lang === 'ru' ? 'Данные OAuth импортированы' : 'OAuth credentials imported';
   }
   if (m === 'Google Drive connected') {
-    return lang === 'ru' ? 'Google Drive подключён' : 'Google Drive connected';
+    return lang === 'ru' ? 'Google Drive успешно подключён' : 'Google Drive connected';
   }
   if (m === 'Google Drive disconnected') {
     return lang === 'ru' ? 'Google Drive отключён' : 'Google Drive disconnected';
@@ -451,19 +491,22 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
 
   // common token errors stay readable; light-touch RU hints
   if (lang === 'ru') {
-    if (m === 'token expired') return 'токен истёк';
-    if (m === 'invalid token format') return 'неверный формат токена';
-    if (m === 'empty input') return 'пустой ввод';
+    if (m === 'token expired') return 'Срок действия токена истёк';
+    if (m === 'invalid token format') return 'Неверный формат токена';
+    if (m === 'empty input') return 'Пустой ввод';
     if (m.startsWith('no JWT found')) return 'JWT не найден в ключе';
-    if (m.startsWith('token issuer')) return 'issuer токена не steam';
-    if (m.startsWith('token audience')) return 'в токене нет audience client';
-    if (m.startsWith('token missing')) return 'в токене нет steam id';
+    if (m.startsWith('token issuer')) return 'Issuer токена не соответствует Steam';
+    if (m.startsWith('token audience')) return 'В токене отсутствует audience client';
+    if (m.startsWith('token missing')) return 'В токене отсутствует Steam ID';
     if (m.includes('Directory not recognized') || m.includes('directory not recognized')) {
-      return 'папка Steam не найдена — сначала запустите Steam';
+      return 'Папка Steam не найдена. Сначала запустите Steam на этом компьютере.';
     }
-    if (m.includes('encrypt token')) return 'ошибка шифрования токена (DPAPI)';
-    if (m.includes('set AutoLoginUser')) return 'не удалось записать AutoLoginUser в реестр';
+    if (m.includes('encrypt token')) return 'Ошибка шифрования токена (DPAPI)';
+    if (m.includes('set AutoLoginUser')) return 'Не удалось записать AutoLoginUser в реестр';
     if (m.includes('steam not found')) return 'Steam не найден';
+    if (m.includes('authorization timed out')) {
+      return 'Время ожидания авторизации истекло. Нажмите «Отмена» и повторите попытку.';
+    }
   }
 
   return m;

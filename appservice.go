@@ -19,7 +19,7 @@ import (
 
 // AppName / AppVersion shown in the UI title bar.
 const AppName = "NFA Tool Recode v2"
-const AppVersion = "2.0.5"
+const AppVersion = "2.1.0"
 
 // GetAppName returns the product display name.
 func (s *AppService) GetAppName() string {
@@ -222,6 +222,65 @@ func (s *AppService) DeleteAccount(account string) Result {
 		return Result{OK: false, Message: err.Error()}
 	}
 	return Result{OK: true, Message: "Account deleted"}
+}
+
+// ImportTokens imports multi-line login----token text into the local store (no Steam login).
+func (s *AppService) ImportTokens(text string) Result {
+	keys, errs := token.ParseBulkKeys(text)
+	if len(keys) == 0 {
+		if len(errs) > 0 {
+			return s.fail(fmt.Sprintf("import failed: %s", errs[0]))
+		}
+		return s.fail("no accounts to import")
+	}
+	okN := 0
+	for _, k := range keys {
+		if err := s.store.Put(k.Account, k.Token); err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", k.Account, err))
+			continue
+		}
+		okN++
+	}
+	if okN == 0 {
+		msg := "import failed"
+		if len(errs) > 0 {
+			msg = errs[0]
+		}
+		return s.fail(msg)
+	}
+	msg := fmt.Sprintf("Imported %d account(s)", okN)
+	if len(errs) > 0 {
+		msg += fmt.Sprintf(" · %d skipped", len(errs))
+	}
+	return s.ok(msg)
+}
+
+// ImportTokensFromFile opens a .txt file and imports login----token lines.
+func (s *AppService) ImportTokensFromFile() Result {
+	app := application.Get()
+	if app == nil {
+		return s.fail("dialog unavailable")
+	}
+	dlg := app.Dialog.OpenFile()
+	if dlg == nil {
+		return s.fail("dialog unavailable")
+	}
+	dlg.SetTitle("Import tokens")
+	dlg.AddFilter("Text files", "*.txt")
+	dlg.AddFilter("All files", "*.*")
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return s.fail("Cancelled")
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	return s.ImportTokens(string(raw))
 }
 
 // ExportTokens returns login----token lines for the given names (empty = all).

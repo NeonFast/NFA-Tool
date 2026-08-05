@@ -4,18 +4,23 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 
 **Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
 
-**Version:** 2.0.2
+**Version:** 2.1.0
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
 ## Features
 
-- Login with `username----eya_jwt` (or marketplace-style multi-segment keys)
-- Saved accounts in local **SQLite** (`accounts.db`) + token expiry display
+- Login with `login----token` (marketplace multi-segment keys supported)
+- Saved accounts in local **SQLite** (`accounts.db`) with expiry display
+- **Import** one key from the field, or **bulk import** from a `.txt` file (`login----token` per line)
+- **Export** selected / all / per-row → clipboard, file, or **Google Drive**
+- Drag-select accounts (paint checkboxes with the mouse)
 - Optional **keep other Steam logins** (surgical ConnectCache / loginusers merge)
-- RU / EN UI (system language + manual switch)
+- RU / EN UI (system language + Settings)
+- Settings: language, Steam options, Google Drive OAuth, updates, Reset Steam
 - Native success/error dialogs
 - **Update checker** (GitHub Releases) + one-click install/restart
+- Markdown release notes in the update dialog
 - Reset Steam (config / userdata)
 - Runs elevated for config writes; starts Steam **unelevated**
 - Single native `NFA-Tool-Recode-v2.exe`
@@ -50,36 +55,31 @@ wails3 dev
 
 ## Auto releases (GitHub Actions)
 
-After the repo is on GitHub, **you don’t upload the exe by hand**.
-
-1. **Always bump** `AppVersion` in `appservice.go` (and `build/config.yml` / `info.json`) to match the tag — otherwise the in-app checker keeps saying “update available”.
+1. Bump `AppVersion` in `appservice.go` (and `build/config.yml` / `info.json`) to match the tag.
 2. Commit & push `main`.
-3. Create and push a tag:
+3. Tag and push:
 
 ```powershell
-git tag v2.0.1
-git push origin v2.0.1
+git tag v2.1.0
+git push origin v2.1.0
 ```
 
-GitHub Actions (`.github/workflows/release.yml`) will:
+GitHub Actions (`.github/workflows/release.yml`) builds Windows exe and publishes a Release with  
+`NFA-Tool-Recode-v2-windows-amd64.exe` + `SHA256SUMS.txt`.
 
-- build Windows exe on `windows-latest`
-- create a **Release** named like `NFA Tool Recode v2 2.0.1`
-- attach `NFA-Tool-Recode-v2-windows-amd64.exe` + `SHA256SUMS.txt`
-
-Also: every push/PR to `main` runs `.github/workflows/windows-build.yml` and uploads a build **artifact** (not a full Release).
-
-Manual run: Actions → **Release** → Run workflow (optional tag input).
+Pushes/PRs to `main` also run `.github/workflows/windows-build.yml` (artifact only).
 
 ## Usage
 
 1. Run as **Administrator**.
 2. Open Steam once on this PC if you never did, then close it.
-3. Paste key: `login----token`
-4. Press **Login**.
-5. Guide: https://teletype.in/@hackerdlc/CS2NFA
+3. Paste a key: `login----token` → **Login** (or **Import** to save only).
+4. Bulk: **Import from file…** — same format as export (`login----token` lines).
+5. Export: select accounts (click or drag) → **Export** → clipboard / file / Google Drive.
+6. Google Drive: **Settings** → configure OAuth once (see in-app guide), then pick Drive on export.
+7. Full Steam guide: https://teletype.in/@hackerdlc/CS2NFA
 
-Optional: **Keep other Steam accounts** — leaves your previous Steam logins available.
+Optional: **Keep other Steam accounts** — previous Steam logins stay available.
 
 ## Project layout
 
@@ -88,6 +88,8 @@ main.go / appservice.go
 internal/steam/
 internal/token/
 internal/storage/
+internal/gdrive/
+internal/update/
 frontend/
 build/
 .github/workflows/
@@ -95,10 +97,11 @@ build/
 
 ## Security
 
-- Tokens in `accounts.db` are **DPAPI-encrypted** (Windows user + app key). Stealing the file alone is not enough.
+- Tokens in `accounts.db` are **DPAPI-encrypted** (Windows user + app entropy). Stealing the file alone is not enough.
 - Same-user malware can still decrypt — this is not antivirus.
+- Google OAuth tokens are stored sealed next to the app (`gdrive-token.sealed`); client credentials in `google-oauth.json`.
 - Hot-update from GitHub Releases (in-app).
-- Do not commit DB files or logs.
+- Do not commit DB files, OAuth secrets, or logs.
 - Unofficial tool — use only with accounts/tokens you are allowed to use.
 
 ## License
