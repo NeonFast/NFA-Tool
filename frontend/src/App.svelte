@@ -899,10 +899,6 @@
             </div>
           {/if}
         </section>
-
-        <button class="btn ghost block" type="button" style="margin-top:8px" onclick={closeSettings}>
-          {t(lang, 'close')}
-        </button>
       {/if}
     </div>
   </div>
