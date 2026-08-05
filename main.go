@@ -23,6 +23,7 @@ func main() {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
+			// Keep running if guide window is closed while main is open (and vice versa on mac).
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
@@ -30,12 +31,12 @@ func main() {
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "main",
 		Title:            "NFA Tool Recode v2",
-		Width:            980,
-		Height:           640,
-		MinWidth:         980,
-		MinHeight:        640,
-		MaxWidth:         980,
-		MaxHeight:        640,
+		Width:            1120,
+		Height:           780,
+		MinWidth:         1120,
+		MinHeight:        780,
+		MaxWidth:         1120,
+		MaxHeight:        780,
 		Frameless:        true,
 		BackgroundColour: application.NewRGB(15, 15, 26),
 		URL:              "/",

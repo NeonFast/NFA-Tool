@@ -41,10 +41,22 @@
   let accountKey = $state('');
   let keepExisting = $state(false);
   let accounts = $state<Account[]>([]);
+  let selected = $state<Record<string, boolean>>({});
   let status = $state('');
   let statusKind = $state<'ok' | 'err' | ''>('ok');
   let loading = $state(false);
+  let exportBusy = $state(false);
   let showHelp = $state(false);
+  let showDrive = $state(false);
+  let driveBusy = $state(false);
+  let driveAuthWait = $state(false);
+  let driveClientId = $state('');
+  let driveClientSecret = $state('');
+  let driveStatus = $state<{
+    hasCredentials: boolean;
+    connected: boolean;
+    clientIdHint: string;
+  }>({ hasCredentials: false, connected: false, clientIdHint: '' });
   let showUpdate = $state(false);
   let updateBusy = $state(false);
   let updateInfo = $state<{
@@ -160,8 +172,253 @@
     try {
       const list = await AppService.ListAccounts();
       accounts = (list ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+      const next: Record<string, boolean> = {};
+      for (const a of accounts) {
+        if (selected[a.name]) next[a.name] = true;
+      }
+      selected = next;
     } catch (e) {
       setStatus(String(e), 'err');
+    }
+  }
+
+  const selectedNames = $derived(
+    accounts.filter((a) => selected[a.name]).map((a) => a.name),
+  );
+  const allSelected = $derived(
+    accounts.length > 0 && selectedNames.length === accounts.length,
+  );
+
+  function toggleSelect(name: string) {
+    selected = { ...selected, [name]: !selected[name] };
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      selected = {};
+      return;
+    }
+    const next: Record<string, boolean> = {};
+    for (const a of accounts) next[a.name] = true;
+    selected = next;
+  }
+
+  async function exportAccounts(all: boolean) {
+    const names = all ? [] : selectedNames;
+    if (!all && names.length === 0) {
+      const msg = t(lang, 'exportNone');
+      setStatus(msg, 'err', true);
+      await notify(false, msg);
+      return;
+    }
+    exportBusy = true;
+    try {
+      const text = await (AppService as any).ExportTokens(names);
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        /* clipboard optional */
+      }
+      const res = (await (AppService as any).ExportTokensToFile(names)) as Result;
+      if (res.ok) {
+        const msg = `${t(lang, 'exportOk')}. ${t(lang, 'exportCopied')}`;
+        setStatus(res.message || msg, 'ok');
+        await notify(true, res.message || msg);
+      } else if (res.message === 'Cancelled' || res.message === 'cancelled') {
+        setStatus(t(lang, 'exportCopied'), 'ok', true);
+        await notify(true, t(lang, 'exportCopied'));
+      } else {
+        setStatus(res.message, 'err');
+        await notify(false, res.message);
+      }
+    } catch (e) {
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
+    } finally {
+      exportBusy = false;
+    }
+  }
+
+  async function refreshDriveStatus() {
+    try {
+      const st = await (AppService as any).GoogleDriveStatus();
+      driveStatus = {
+        hasCredentials: !!st?.hasCredentials,
+        connected: !!st?.connected,
+        clientIdHint: st?.clientIdHint || '',
+      };
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function openDriveModal() {
+    await refreshDriveStatus();
+    showDrive = true;
+    if (!driveStatus.hasCredentials) {
+      try {
+        await (AppService as any).OpenDriveGuide();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  async function openDriveGuide() {
+    try {
+      await (AppService as any).OpenDriveGuide();
+    } catch (e) {
+      setStatus(String(e), 'err');
+    }
+  }
+
+  async function saveDriveCreds() {
+    driveBusy = true;
+    try {
+      const res = (await (AppService as any).SaveGoogleCredentials(
+        driveClientId.trim(),
+        driveClientSecret.trim(),
+      )) as Result;
+      setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
+      if (res.ok) {
+        driveClientId = '';
+        driveClientSecret = '';
+        await refreshDriveStatus();
+      }
+    } catch (e) {
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
+    } finally {
+      driveBusy = false;
+    }
+  }
+
+  async function importDriveCreds() {
+    driveBusy = true;
+    try {
+      const res = (await (AppService as any).ImportGoogleCredentials()) as Result;
+      if (res.message !== 'Cancelled' && res.message !== 'cancelled') {
+        setStatus(res.message, res.ok ? 'ok' : 'err');
+        await notify(res.ok, res.message);
+      }
+      await refreshDriveStatus();
+    } catch (e) {
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
+    } finally {
+      driveBusy = false;
+    }
+  }
+
+  async function cancelDriveAuth() {
+    try {
+      await (AppService as any).CancelGoogleAuth();
+    } catch {
+      /* ignore */
+    }
+    driveAuthWait = false;
+    driveBusy = false;
+    setStatus(t(lang, 'cancelled'), 'ok', true);
+  }
+
+  async function closeDriveModal() {
+    if (driveAuthWait || driveBusy) {
+      await cancelDriveAuth();
+    }
+    showDrive = false;
+  }
+
+  async function connectDrive() {
+    driveBusy = true;
+    driveAuthWait = true;
+    setStatus(t(lang, 'driveWaiting'), '', true);
+    try {
+      const res = (await (AppService as any).ConnectGoogleDrive()) as Result;
+      const cancelled =
+        res.message === 'Cancelled' ||
+        res.message === 'cancelled' ||
+        (res.message || '').toLowerCase().includes('cancelled');
+      if (cancelled) {
+        setStatus(t(lang, 'cancelled'), 'ok', true);
+      } else {
+        setStatus(res.message, res.ok ? 'ok' : 'err');
+        await notify(res.ok, res.message);
+      }
+      await refreshDriveStatus();
+    } catch (e) {
+      const msg = String(e);
+      if (msg.toLowerCase().includes('cancel')) {
+        setStatus(t(lang, 'cancelled'), 'ok', true);
+      } else {
+        setStatus(msg, 'err');
+        await notify(false, msg);
+      }
+    } finally {
+      driveAuthWait = false;
+      driveBusy = false;
+    }
+  }
+
+  async function disconnectDrive() {
+    driveBusy = true;
+    try {
+      const res = (await (AppService as any).DisconnectGoogleDrive()) as Result;
+      setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
+      await refreshDriveStatus();
+    } catch (e) {
+      const msg = String(e);
+      setStatus(msg, 'err');
+      await notify(false, msg);
+    } finally {
+      driveBusy = false;
+    }
+  }
+
+  async function exportToDrive(all: boolean) {
+    const names = all ? [] : selectedNames;
+    if (!all && names.length === 0) {
+      const msg = t(lang, 'exportNone');
+      setStatus(msg, 'err', true);
+      await notify(false, msg);
+      return;
+    }
+    driveBusy = true;
+    driveAuthWait = !driveStatus.connected;
+    setStatus(
+      driveAuthWait ? t(lang, 'driveWaiting') : t(lang, 'driveUploading'),
+      '',
+      true,
+    );
+    try {
+      const res = (await (AppService as any).ExportTokensToGoogleDrive(names)) as Result;
+      const cancelled =
+        res.message === 'Cancelled' ||
+        res.message === 'cancelled' ||
+        (res.message || '').toLowerCase().includes('cancelled');
+      if (cancelled) {
+        setStatus(t(lang, 'cancelled'), 'ok', true);
+      } else {
+        setStatus(res.message, res.ok ? 'ok' : 'err');
+        await notify(res.ok, res.message);
+        if (res.ok) showDrive = false;
+      }
+      await refreshDriveStatus();
+    } catch (e) {
+      const msg = String(e);
+      if (msg.toLowerCase().includes('cancel')) {
+        setStatus(t(lang, 'cancelled'), 'ok', true);
+      } else {
+        setStatus(msg, 'err');
+        await notify(false, msg);
+      }
+    } finally {
+      driveAuthWait = false;
+      driveBusy = false;
     }
   }
 
@@ -270,7 +527,19 @@
       <button class="ghost" type="button" onclick={() => (showHelp = true)}>{t(lang, 'showInstructions')}</button>
       <div class="win-btns">
         <button class="win" type="button" onclick={() => AppService.WindowMinimise()} aria-label="Minimise">─</button>
-        <button class="win close" type="button" onclick={() => AppService.WindowClose()} aria-label="Close">✕</button>
+        <button
+          class="win close"
+          type="button"
+          onclick={async () => {
+            try {
+              await (AppService as any).CancelGoogleAuth?.();
+            } catch {
+              /* ignore */
+            }
+            await AppService.WindowClose();
+          }}
+          aria-label="Close"
+        >✕</button>
       </div>
     </div>
   </header>
@@ -302,13 +571,47 @@
     </section>
 
     <section class="accounts-pane">
-      <h2 class="accounts-title">{t(lang, 'savedAccounts')}</h2>
+      <div class="accounts-head">
+        <h2 class="accounts-title">{t(lang, 'savedAccounts')}</h2>
+        {#if accounts.length > 0}
+          <div class="export-bar">
+            <button class="ghost sm" type="button" disabled={exportBusy} onclick={toggleSelectAll}>
+              {allSelected ? t(lang, 'deselectAll') : t(lang, 'selectAll')}
+            </button>
+            <button
+              class="ghost sm"
+              type="button"
+              disabled={exportBusy || selectedNames.length === 0}
+              onclick={() => exportAccounts(false)}
+            >
+              {t(lang, 'exportSelected')}
+              {#if selectedNames.length > 0}
+                ({selectedNames.length})
+              {/if}
+            </button>
+            <button class="ghost sm" type="button" disabled={exportBusy} onclick={() => exportAccounts(true)}>
+              {t(lang, 'exportAll')}
+            </button>
+            <button class="ghost sm accent" type="button" disabled={exportBusy || driveBusy} onclick={openDriveModal}>
+              {t(lang, 'exportDrive')}
+            </button>
+          </div>
+        {/if}
+      </div>
       {#if accounts.length === 0}
         <p class="empty">{t(lang, 'noSavedAccounts')}</p>
       {:else}
         <div class="accounts-list">
           {#each accounts as acc (acc.name)}
-            <div class="account-row">
+            <div class="account-row" class:picked={!!selected[acc.name]}>
+              <label class="pick">
+                <input
+                  type="checkbox"
+                  checked={!!selected[acc.name]}
+                  onchange={() => toggleSelect(acc.name)}
+                />
+                <span class="box"></span>
+              </label>
               <div class="meta">
                 <div class="name">{acc.name}</div>
                 <div class="exp" class:ok={acc.valid} class:bad={!acc.valid}>
@@ -342,6 +645,7 @@
         <li>{t(lang, 'help3')}</li>
         <li>{t(lang, 'help4')}</li>
         <li>{t(lang, 'help5')}</li>
+        <li>{t(lang, 'help6')}</li>
       </ol>
       <p class="guide">
         {t(lang, 'fullGuide')}
@@ -350,6 +654,89 @@
         </button>
       </p>
       <button class="primary" type="button" onclick={() => (showHelp = false)}>{t(lang, 'gotIt')}</button>
+    </div>
+  </div>
+{/if}
+
+{#if showDrive}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+  <div class="modal" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.currentTarget === e.target && closeDriveModal()}>
+    <div class="modal-card update drive-modal">
+      <div class="modal-head">
+        <h3>{t(lang, 'driveTitle')}</h3>
+        <button class="modal-x" type="button" onclick={closeDriveModal} aria-label={t(lang, 'close')}>✕</button>
+      </div>
+      {#if driveAuthWait}
+        <p class="update-msg wait">{t(lang, 'driveWaiting')}</p>
+        <div class="modal-actions">
+          <button class="primary danger-btn" type="button" onclick={cancelDriveAuth}>
+            {t(lang, 'cancel')}
+          </button>
+          <button class="ghost-block" type="button" onclick={closeDriveModal}>
+            {t(lang, 'close')}
+          </button>
+        </div>
+      {:else}
+        <p class="update-msg">
+          {driveStatus.connected
+            ? `${t(lang, 'driveConnected')}${driveStatus.clientIdHint ? ' · ' + driveStatus.clientIdHint : ''}`
+            : driveStatus.hasCredentials
+              ? t(lang, 'driveNotConnected')
+              : t(lang, 'driveSetupHint')}
+        </p>
+
+        <button class="ghost-block tut-toggle" type="button" onclick={openDriveGuide}>
+          {t(lang, 'driveOpenGuide')}
+        </button>
+
+        {#if !driveStatus.hasCredentials}
+          <label class="field">
+            <input type="text" spellcheck="false" autocomplete="off" placeholder={t(lang, 'driveClientId')} bind:value={driveClientId} />
+          </label>
+          <label class="field" style="margin-top:8px">
+            <input type="text" spellcheck="false" autocomplete="off" placeholder={t(lang, 'driveClientSecret')} bind:value={driveClientSecret} />
+          </label>
+        {/if}
+        <div class="modal-actions" style="margin-top:14px">
+          {#if !driveStatus.hasCredentials}
+            <button class="primary" type="button" disabled={driveBusy || !driveClientId.trim()} onclick={saveDriveCreds}>
+              {t(lang, 'driveSave')}
+            </button>
+            <button class="ghost-block" type="button" disabled={driveBusy} onclick={importDriveCreds}>
+              {t(lang, 'driveImport')}
+            </button>
+          {:else}
+            {#if !driveStatus.connected}
+              <button class="primary" type="button" disabled={driveBusy} onclick={connectDrive}>
+                {t(lang, 'driveConnect')}
+              </button>
+            {:else}
+              <button
+                class="primary"
+                type="button"
+                disabled={driveBusy || (selectedNames.length === 0 && accounts.length === 0)}
+                onclick={() => exportToDrive(selectedNames.length === 0)}
+              >
+                {driveBusy ? t(lang, 'driveUploading') : t(lang, 'driveExport')}
+                {#if selectedNames.length > 0}
+                  ({selectedNames.length})
+                {:else if accounts.length > 0}
+                  ({accounts.length})
+                {/if}
+              </button>
+              <button class="ghost-block" type="button" disabled={driveBusy} onclick={disconnectDrive}>
+                {t(lang, 'driveDisconnect')}
+              </button>
+            {/if}
+            <button class="ghost-block" type="button" disabled={driveBusy} onclick={importDriveCreds}>
+              {t(lang, 'driveImport')}
+            </button>
+          {/if}
+          <button class="ghost-block" type="button" onclick={closeDriveModal}>
+            {t(lang, 'close')}
+          </button>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -666,11 +1053,97 @@
     --wails-draggable: no-drag;
   }
 
+  .accounts-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
   .accounts-title {
     color: var(--cyan);
     font-size: 22px;
     font-weight: 650;
-    margin-bottom: 14px;
+    margin: 0;
+  }
+
+  .export-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ghost.sm {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    border-radius: 9px;
+  }
+
+  .ghost.sm.accent {
+    border-color: rgba(45, 212, 191, 0.35);
+    color: var(--cyan);
+  }
+
+  .tut-toggle {
+    margin-bottom: 10px;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .modal-card.update {
+    overflow: auto;
+  }
+
+  .modal-card.update.drive-modal {
+    width: min(480px, 92vw);
+    max-height: min(640px, 90vh);
+    padding: 22px 22px;
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .modal-head h3 {
+    margin-bottom: 0;
+  }
+
+  .modal-x {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .modal-x:hover {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--danger);
+  }
+
+  .update-msg.wait {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+
+  .danger-btn {
+    background: linear-gradient(90deg, #fca5a5 0%, #f87171 100%) !important;
+    color: #2a0a0a !important;
+  }
+
+  .ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .accounts-list {
@@ -685,7 +1158,7 @@
 
   .account-row {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     gap: 10px;
     align-items: center;
     background: rgba(255, 255, 255, 0.03);
@@ -697,6 +1170,48 @@
   .account-row:hover {
     border-color: rgba(45, 212, 191, 0.25);
     background: rgba(45, 212, 191, 0.04);
+  }
+
+  .account-row.picked {
+    border-color: rgba(167, 139, 250, 0.4);
+    background: rgba(167, 139, 250, 0.08);
+  }
+
+  .pick {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .pick input {
+    display: none;
+  }
+
+  .pick .box {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--accent-strong);
+    flex-shrink: 0;
+    opacity: 0.35;
+    position: relative;
+    transition: 0.15s ease;
+  }
+
+  .pick input:checked + .box {
+    opacity: 1;
+  }
+
+  .pick input:checked + .box::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 5px;
+    height: 9px;
+    border: solid #1a1030;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
 
   .meta .name {

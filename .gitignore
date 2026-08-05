@@ -53,6 +53,8 @@ build/bin/
 .env.*
 *.pem
 *.key
+google-oauth.json
+gdrive-token.sealed
 
 # Design drop (source kept as build/appicon.png)
 # nfa_icon.jpg can stay tracked if desired

@@ -12,11 +12,21 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as gdrive$0 from "./internal/gdrive/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as update$0 from "./internal/update/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * CancelGoogleAuth aborts waiting for Google browser login (unblocks the UI).
+ */
+export function CancelGoogleAuth(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(101741329);
+}
 
 /**
  * CheckForUpdates queries GitHub Releases for a newer version.
@@ -25,8 +35,50 @@ export function CheckForUpdates(): $CancellablePromise<update$0.Info> {
     return $Call.ByID(3671876993);
 }
 
+/**
+ * CloseDriveGuide closes the guide window only (main app stays open).
+ */
+export function CloseDriveGuide(): $CancellablePromise<void> {
+    return $Call.ByID(3836803610);
+}
+
+/**
+ * ConnectGoogleDrive runs browser OAuth (drive.file) and stores the refresh token.
+ */
+export function ConnectGoogleDrive(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(1578148157);
+}
+
 export function DeleteAccount(account: string): $CancellablePromise<$models.Result> {
     return $Call.ByID(991878028, account);
+}
+
+/**
+ * DisconnectGoogleDrive removes the stored Google session.
+ */
+export function DisconnectGoogleDrive(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(1131272017);
+}
+
+/**
+ * ExportTokens returns login----token lines for the given names (empty = all).
+ */
+export function ExportTokens(names: string[] | null): $CancellablePromise<string> {
+    return $Call.ByID(2299824202, names);
+}
+
+/**
+ * ExportTokensToFile writes selected (or all) tokens to a user-chosen .txt file.
+ */
+export function ExportTokensToFile(names: string[] | null): $CancellablePromise<$models.Result> {
+    return $Call.ByID(2158294465, names);
+}
+
+/**
+ * ExportTokensToGoogleDrive uploads login----token text for selected (or all) accounts.
+ */
+export function ExportTokensToGoogleDrive(names: string[] | null): $CancellablePromise<$models.Result> {
+    return $Call.ByID(259316632, names);
 }
 
 /**
@@ -38,6 +90,27 @@ export function GetAppName(): $CancellablePromise<string> {
 
 export function GetVersion(): $CancellablePromise<string> {
     return $Call.ByID(2729898890);
+}
+
+/**
+ * GoogleAuthBusy is true while Connect waits on the browser.
+ */
+export function GoogleAuthBusy(): $CancellablePromise<boolean> {
+    return $Call.ByID(1864587958);
+}
+
+/**
+ * GoogleDriveStatus returns OAuth setup / connection state.
+ */
+export function GoogleDriveStatus(): $CancellablePromise<gdrive$0.Status> {
+    return $Call.ByID(3045286533);
+}
+
+/**
+ * ImportGoogleCredentials opens a file picker for google-oauth.json from Cloud Console.
+ */
+export function ImportGoogleCredentials(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(2970535038);
 }
 
 /**
@@ -67,6 +140,13 @@ export function Notify(success: boolean, title: string, message: string): $Cance
 }
 
 /**
+ * OpenDriveGuide opens (or focuses) the Google Drive setup guide window.
+ */
+export function OpenDriveGuide(): $CancellablePromise<void> {
+    return $Call.ByID(719302686);
+}
+
+/**
  * OpenURL opens a link in the default browser.
  */
 export function OpenURL(url: string): $CancellablePromise<void> {
@@ -75,6 +155,13 @@ export function OpenURL(url: string): $CancellablePromise<void> {
 
 export function ResetSteam(): $CancellablePromise<$models.Result> {
     return $Call.ByID(2909845851);
+}
+
+/**
+ * SaveGoogleCredentials stores Desktop OAuth client id + secret.
+ */
+export function SaveGoogleCredentials(clientID: string, clientSecret: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3910052830, clientID, clientSecret);
 }
 
 export function WindowClose(): $CancellablePromise<void> {
