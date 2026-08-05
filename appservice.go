@@ -19,7 +19,7 @@ import (
 
 // AppName / AppVersion shown in the UI title bar.
 const AppName = "NFA Tool Recode v2"
-const AppVersion = "2.1.0"
+const AppVersion = "2.1.1"
 
 // GetAppName returns the product display name.
 func (s *AppService) GetAppName() string {
