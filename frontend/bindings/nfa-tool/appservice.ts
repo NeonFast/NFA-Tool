@@ -54,6 +54,13 @@ export function DeleteAccount(account: string): $CancellablePromise<$models.Resu
 }
 
 /**
+ * DeleteAccounts removes multiple saved accounts from the local DB.
+ */
+export function DeleteAccounts(names: string[] | null): $CancellablePromise<$models.Result> {
+    return $Call.ByID(278155885, names);
+}
+
+/**
  * DisconnectGoogleDrive removes the stored Google session.
  */
 export function DisconnectGoogleDrive(): $CancellablePromise<$models.Result> {

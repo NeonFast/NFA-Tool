@@ -586,14 +586,58 @@
     }
   }
 
-  async function deleteAccount(name: string) {
+  function clearSelectionNames(names: string[]) {
+    const drop = new Set(names.map((n) => n.toLowerCase()));
+    const next: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(selected)) {
+      if (!drop.has(k.toLowerCase())) next[k] = v;
+    }
+    selected = next;
+  }
+
+  async function deleteAccount(name: string, e?: Event) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    endDragSelect();
+    const acc = name.trim();
+    if (!acc) return;
     try {
-      const res = (await AppService.DeleteAccount(name)) as Result;
+      const res = (await AppService.DeleteAccount(acc)) as Result;
       setStatus(res.message, res.ok ? 'ok' : 'err');
       await notify(res.ok, res.message);
+      if (res.ok) {
+        clearSelectionNames([acc]);
+        // optimistic UI — drop from list immediately
+        accounts = accounts.filter((a) => a.name.toLowerCase() !== acc.toLowerCase());
+      }
       await refreshAccounts();
-    } catch (e) {
-      const msg = String(e);
+    } catch (err) {
+      const msg = String(err);
+      setStatus(msg, 'err');
+      await notify(false, msg);
+    }
+  }
+
+  async function deleteSelected() {
+    endDragSelect();
+    const names = selectedNames.slice();
+    if (names.length === 0) {
+      const msg = t(lang, 'exportNone');
+      setStatus(msg, 'err', true);
+      return;
+    }
+    try {
+      const res = (await (AppService as any).DeleteAccounts(names)) as Result;
+      setStatus(res.message, res.ok ? 'ok' : 'err');
+      await notify(res.ok, res.message);
+      if (res.ok) {
+        const drop = new Set(names.map((n) => n.toLowerCase()));
+        accounts = accounts.filter((a) => !drop.has(a.name.toLowerCase()));
+        selected = {};
+      }
+      await refreshAccounts();
+    } catch (err) {
+      const msg = String(err);
       setStatus(msg, 'err');
       await notify(false, msg);
     }
@@ -711,6 +755,15 @@
             <button class="btn ghost sm" type="button" disabled={exportBusy} onclick={() => exportAccounts(true)}>
               {t(lang, 'exportAll')}
             </button>
+            <button
+              class="btn ghost sm danger-sm"
+              type="button"
+              disabled={selectedNames.length === 0}
+              onclick={deleteSelected}
+            >
+              {t(lang, 'deleteSelected')}
+              {#if selectedNames.length > 0}({selectedNames.length}){/if}
+            </button>
           </div>
         {/if}
       </div>
@@ -747,15 +800,35 @@
                 </div>
               </div>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="row-actions" onpointerdown={(e) => e.stopPropagation()}>
+              <div
+                class="row-actions"
+                onpointerdown={(e) => {
+                  e.stopPropagation();
+                  endDragSelect();
+                }}
+              >
                 <button
                   class="btn mini export"
                   type="button"
                   disabled={exportBusy}
-                  onclick={() => exportOne(acc.name)}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    exportOne(acc.name);
+                  }}
                 >{t(lang, 'export')}</button>
-                <button class="btn mini login" type="button" onclick={() => loginSaved(acc.name)}>{t(lang, 'login')}</button>
-                <button class="btn mini del" type="button" onclick={() => deleteAccount(acc.name)}>{t(lang, 'delete')}</button>
+                <button
+                  class="btn mini login"
+                  type="button"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    loginSaved(acc.name);
+                  }}
+                >{t(lang, 'login')}</button>
+                <button
+                  class="btn mini del"
+                  type="button"
+                  onclick={(e) => deleteAccount(acc.name, e)}
+                >{t(lang, 'delete')}</button>
               </div>
             </div>
           {/each}
@@ -1264,6 +1337,17 @@
 
   .btn.mini.del:hover:not(:disabled) {
     background: rgba(251, 113, 133, 0.2);
+  }
+
+  .btn.ghost.sm.danger-sm {
+    color: var(--danger);
+    border-color: rgba(251, 113, 133, 0.35);
+  }
+
+  .btn.ghost.sm.danger-sm:hover:not(:disabled) {
+    background: rgba(251, 113, 133, 0.12);
+    border-color: rgba(251, 113, 133, 0.5);
+    color: var(--danger);
   }
 
   .danger-btn {

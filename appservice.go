@@ -104,8 +104,12 @@ func (s *AppService) OpenURL(url string) {
 }
 
 func (s *AppService) ListAccounts() ([]AccountDTO, error) {
-	if harvested, err := steam.HarvestConnectCache(); err == nil && len(harvested) > 0 {
-		_ = s.store.Merge(harvested)
+	// Do NOT harvest Steam ConnectCache here — that re-imported deleted accounts
+	// after every refresh. Harvest only once when the local DB is empty.
+	if m0, err := s.store.Load(); err == nil && len(m0) == 0 {
+		if harvested, err := steam.HarvestConnectCache(); err == nil && len(harvested) > 0 {
+			_ = s.store.Merge(harvested)
+		}
 	}
 
 	m, err := s.store.Load()
@@ -218,10 +222,48 @@ func (s *AppService) fail(msg string) Result {
 }
 
 func (s *AppService) DeleteAccount(account string) Result {
-	if err := s.store.Delete(account); err != nil {
-		return Result{OK: false, Message: err.Error()}
+	account = strings.TrimSpace(account)
+	if account == "" {
+		return s.fail("account name required")
 	}
-	return Result{OK: true, Message: "Account deleted"}
+	if err := s.store.Delete(account); err != nil {
+		return s.fail(err.Error())
+	}
+	return s.ok("Account deleted")
+}
+
+// DeleteAccounts removes multiple saved accounts from the local DB.
+func (s *AppService) DeleteAccounts(names []string) Result {
+	okN := 0
+	var lastErr string
+	seen := map[string]bool{}
+	for _, n := range names {
+		n = strings.TrimSpace(n)
+		if n == "" {
+			continue
+		}
+		key := strings.ToLower(n)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		if err := s.store.Delete(n); err != nil {
+			lastErr = err.Error()
+			continue
+		}
+		okN++
+	}
+	if okN == 0 {
+		if lastErr != "" {
+			return s.fail(lastErr)
+		}
+		return s.fail("no accounts to delete")
+	}
+	msg := fmt.Sprintf("Deleted %d account(s)", okN)
+	if lastErr != "" {
+		msg += " · some failed"
+	}
+	return s.ok(msg)
 }
 
 // ImportTokens imports multi-line login----token text into the local store (no Steam login).

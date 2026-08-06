@@ -13,6 +13,8 @@ export type Dict = {
   savedAccounts: string;
   noSavedAccounts: string;
   delete: string;
+  deleteSelected: string;
+  deletedN: string;
   ready: string;
   enterKey: string;
   loggingIn: string;
@@ -139,6 +141,8 @@ const en: Dict = {
   savedAccounts: 'Saved Accounts',
   noSavedAccounts: 'No saved accounts',
   delete: 'Delete',
+  deleteSelected: 'Delete selected',
+  deletedN: 'Deleted {n} account(s)',
   ready: 'Ready',
   enterKey: 'Enter an account key',
   loggingIn: 'Logging in...',
@@ -264,6 +268,8 @@ const ru: Dict = {
   savedAccounts: 'Сохранённые аккаунты',
   noSavedAccounts: 'Нет сохранённых аккаунтов',
   delete: 'Удалить',
+  deleteSelected: 'Удалить выбранные',
+  deletedN: 'Удалено аккаунтов: {n}',
   ready: 'Готово',
   enterKey: 'Введите ключ аккаунта',
   loggingIn: 'Выполняется вход…',
@@ -428,6 +434,13 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   const m = msg.trim();
 
   if (m === 'Account deleted' || m === 'account deleted') return t(lang, 'accountDeleted');
+  if (m.startsWith('Deleted ')) {
+    const n = m.match(/Deleted (\d+)/)?.[1] ?? '';
+    return n ? t(lang, 'deletedN', { n }) : m.replace(/^Deleted /, lang === 'ru' ? 'Удалено: ' : 'Deleted ');
+  }
+  if (m === 'no accounts to delete') {
+    return lang === 'ru' ? 'Нет аккаунтов для удаления' : 'No accounts to delete';
+  }
   if (m === 'Cancelled' || m === 'cancelled') return t(lang, 'cancelled');
   if (m === 'Steam has been reset') return t(lang, 'steamReset');
   if (m === 'account not found') return t(lang, 'accountNotFound');

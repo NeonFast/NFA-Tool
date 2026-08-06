@@ -190,10 +190,24 @@ func (s *Store) Put(account, token string) error {
 }
 
 func (s *Store) Delete(account string) error {
+	account = strings.TrimSpace(account)
+	if account == "" {
+		return fmt.Errorf("empty account")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, err := s.db.Exec(`DELETE FROM accounts WHERE name = ? COLLATE NOCASE`, account)
-	return err
+	res, err := s.db.Exec(`DELETE FROM accounts WHERE lower(name) = lower(?)`, account)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("account not found")
+	}
+	return nil
 }
 
 func (s *Store) Merge(extra map[string]string) error {
