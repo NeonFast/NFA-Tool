@@ -4,7 +4,7 @@ Windows desktop app for Steam **session login via refresh token** (ConnectCache)
 
 **Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
 
-**Version:** 2.1.1
+**Version:** 2.1.2
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
@@ -60,8 +60,8 @@ wails3 dev
 3. Tag and push:
 
 ```powershell
-git tag v2.1.1
-git push origin v2.1.1
+git tag v2.1.2
+git push origin v2.1.2
 ```
 
 GitHub Actions (`.github/workflows/release.yml`) builds Windows exe and publishes a Release with  
