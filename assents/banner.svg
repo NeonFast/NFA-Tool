@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="160" viewBox="0 0 1200 160">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#18181b"/>
+      <stop offset="1" stop-color="#3f3f46"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" opacity=".05"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="160" rx="16" fill="url(#bg)"/>
+  <rect width="1200" height="160" rx="16" fill="url(#dots)"/>
+  <rect width="1200" height="160" rx="16" fill="url(#gloss)"/>
+  <rect x=".5" y=".5" width="1199" height="159" rx="15.5" fill="none" stroke="#52525b" stroke-opacity=".6"/>
+  <text x="600" y="74" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="44" font-weight="bold" fill="#fafafa" letter-spacing="1">NFA Tool Recode</text>
+  <text x="600" y="112" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="16" fill="#a1a1aa">Steam session login via refresh token</text>
+</svg>
