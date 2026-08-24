@@ -1,10 +1,19 @@
-# NFA Tool Recode v2
-
-Windows desktop app for Steam **session login via refresh token** (ConnectCache).
-
-**Stack:** Go · [Wails v3](https://v3.wails.io/) · Svelte 5 · SQLite  
-
-**Version:** 2.1.2
+<div align="center">
+  <img src="assets/banner.svg" width="100%" alt="NFA Tool Recode">
+  <br><br>
+  <b>Windows desktop app for Steam session login via refresh token (ConnectCache)</b>
+  <br><br>
+  <code>Go</code> · <code>Wails v3</code> · <code>Svelte 5</code> · <code>SQLite</code>
+  <br><br>
+  <a href="https://github.com/NeonFast/NFA-Tool/stargazers"><img src="https://www.shieldcn.dev/github/stars/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="Stars"></a>
+  <a href="https://github.com/NeonFast/NFA-Tool/forks"><img src="https://www.shieldcn.dev/github/forks/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="Forks"></a>
+  <a href="https://github.com/NeonFast/NFA-Tool/commits"><img src="https://www.shieldcn.dev/github/commits/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="Commits"></a>
+  <a href="https://github.com/NeonFast/NFA-Tool/releases/latest"><img src="https://www.shieldcn.dev/github/release/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="Release"></a>
+  <a href="https://github.com/NeonFast/NFA-Tool/actions"><img src="https://www.shieldcn.dev/github/ci/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="CI"></a>
+  <a href="https://github.com/NeonFast/NFA-Tool/blob/main/LICENSE"><img src="https://www.shieldcn.dev/github/license/NeonFast/NFA-Tool.svg?variant=secondary&size=sm&theme=zinc&font=space-grotesk" alt="License"></a>
+  <br><br>
+  <a href="https://github.com/NeonFast/NFA-Tool/releases/latest"><img src="https://www.shieldcn.dev/github/downloads/NeonFast/NFA-Tool.svg?variant=default&size=md&theme=zinc&font=space-grotesk" alt="Download"></a>
+</div>
 
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
@@ -109,3 +118,7 @@ build/
 MIT — see [LICENSE](LICENSE).
 
 **Not affiliated with Valve / Steam.**
+
+<div align="center">
+  <img src="assets/footer.svg" width="100%" alt="">
+</div>
