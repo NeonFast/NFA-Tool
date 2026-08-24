@@ -15,8 +15,6 @@
   <a href="https://github.com/NeonFast/NFA-Tool/releases/latest"><img src="https://www.shieldcn.dev/github/downloads/NeonFast/NFA-Tool.svg?variant=default&size=md&theme=zinc&font=space-grotesk" alt="Download"></a>
 </div>
 
-> See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
-
 ## Features
 
 - Login with `login----token` (marketplace multi-segment keys supported)
@@ -118,6 +116,7 @@ build/
 MIT — see [LICENSE](LICENSE).
 
 **Not affiliated with Valve / Steam.**
+> See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
 
 <div align="center">
   <img src="assets/footer.svg" width="100%" alt="">
