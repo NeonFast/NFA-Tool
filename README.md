@@ -22,6 +22,10 @@
 - **Import** one key from the field, or **bulk import** from a `.txt` file (`login----token` per line)
 - **Export** selected / all / per-row → clipboard, file, or **Google Drive**
 - Drag-select accounts (paint checkboxes with the mouse)
+- **Account info panel**: avatar, persona, level, games, friends, wallet, VAC / trade ban / limited, visibility, online state
+- **Harvest** accounts already logged into Steam on this PC (ConnectCache scan)
+- **Light theme** (auto / dark / light) and **Simple / Advanced** UI modes
+- **Logs** and **System status** panels (Steam state, install path, Steam API reachability)
 - Optional **keep other Steam logins** (surgical ConnectCache / loginusers merge)
 - RU / EN UI (system language + Settings)
 - Settings: language, Steam options, Google Drive OAuth, updates, Reset Steam
@@ -32,13 +36,19 @@
 - Runs elevated for config writes; starts Steam **unelevated**
 - Single native `NFA-Tool-Recode-v2.exe`
 
+### Bulk token checker (alpha)
+
+- Proof logon against Steam CM over WebSocket — the refresh token is **not consumed or rotated**
+- Bulk-check pasted keys or all saved accounts, with **proxy support** (http / https / socks5, one per line) and exportable results
+- **Alpha, and was never planned** — it was built at the request of an NFA account shop owner. Expect rough edges; Steam rate-limits checks, so use proxies for large lists
+
 ## Requirements
 
 | | |
 |---|---|
 | OS | Windows 10/11 x64 |
 | Steam | Installed; open Steam **once** so `config.vdf` + `loginusers.vdf` exist |
-| Build | Go 1.24+, Node 20+, [Wails v3 CLI](https://v3.wails.io/getting-started/installation/) |
+| Build | Go 1.26+, Node 22+, [Wails v3 CLI](https://v3.wails.io/getting-started/installation/) |
 
 ```powershell
 go install github.com/wailsapp/wails/v3/cmd/wails3@latest
@@ -84,7 +94,8 @@ Pushes/PRs to `main` also run `.github/workflows/windows-build.yml` (artifact on
 4. Bulk: **Import from file…** — same format as export (`login----token` lines).
 5. Export: select accounts (click or drag) → **Export** → clipboard / file / Google Drive.
 6. Google Drive: **Settings** → configure OAuth once (see in-app guide), then pick Drive on export.
-7. Full Steam guide: https://teletype.in/@hackerdlc/CS2NFA
+7. Bulk check (alpha): paste keys or check saved accounts → results per line, optional proxies, export.
+8. Full Steam guide: https://teletype.in/@hackerdlc/CS2NFA
 
 Optional: **Keep other Steam accounts** — previous Steam logins stay available.
 
@@ -92,6 +103,7 @@ Optional: **Keep other Steam accounts** — previous Steam logins stay available
 
 ```
 main.go / appservice.go
+cmd/ (cmharvest, cmprobe — dev utilities)
 internal/steam/
 internal/token/
 internal/storage/
