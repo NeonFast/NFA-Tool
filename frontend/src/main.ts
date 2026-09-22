@@ -1,6 +1,9 @@
 import { mount } from 'svelte'
 import App from './App.svelte'
 import DriveGuide from './DriveGuide.svelte'
+import { applyTheme, loadTheme } from './theme'
+
+applyTheme(loadTheme())
 
 const page = new URLSearchParams(window.location.search).get('page')
 const target = document.getElementById('app')!

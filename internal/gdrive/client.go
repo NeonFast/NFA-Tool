@@ -100,7 +100,6 @@ func (c *Client) SaveCredentials(clientID, clientSecret string) error {
 	if clientID == "" {
 		return fmt.Errorf("client_id required")
 	}
-	// allow pasting full downloaded JSON
 	if strings.HasPrefix(clientID, "{") {
 		parsed, err := parseCredsJSON([]byte(clientID))
 		if err != nil {
@@ -146,7 +145,6 @@ func (c *Client) Connect(openURL func(string) error) error {
 		return err
 	}
 
-	// cancel previous hang if any
 	c.CancelAuth()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -241,7 +239,6 @@ func (c *Client) Connect(openURL func(string) error) error {
 		_ = srv.Shutdown(shCtx)
 	}()
 
-	// stop listener immediately on cancel
 	go func() {
 		<-ctx.Done()
 		_ = ln.Close()
@@ -269,7 +266,6 @@ func (c *Client) Connect(openURL func(string) error) error {
 		return fmt.Errorf("Cancelled")
 	}
 
-	// exchange can take a moment; still respect cancel
 	type tokRes struct {
 		t   *tokenData
 		err error
@@ -489,7 +485,6 @@ func (c *Client) loadToken() (*tokenData, error) {
 	}
 	plain, err := storage.OpenString(strings.TrimSpace(string(b)))
 	if err != nil {
-		// try plain json (dev)
 		var t tokenData
 		if json.Unmarshal(b, &t) == nil && t.AccessToken != "" {
 			return &t, nil
@@ -513,7 +508,6 @@ func (c *Client) saveToken(t *tokenData) error {
 	}
 	sealed, err := storage.SealString(string(raw))
 	if err != nil {
-		// fallback plain (non-windows)
 		sealed = string(raw)
 	}
 	if err := os.MkdirAll(c.dir, 0o755); err != nil {

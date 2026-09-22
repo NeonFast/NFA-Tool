@@ -23,6 +23,7 @@ type Store struct {
 	mu   sync.Mutex
 }
 
+// New opens (or creates) the accounts database under baseDir.
 func New(baseDir string) (*Store, error) {
 	if baseDir == "" {
 		baseDir, _ = os.Getwd()
@@ -49,6 +50,7 @@ func New(baseDir string) (*Store, error) {
 	return s, nil
 }
 
+// Path returns the database file path.
 func (s *Store) Path() string { return s.path }
 
 func (s *Store) init() error {
@@ -71,7 +73,6 @@ func (s *Store) init() error {
 	return nil
 }
 
-// resealPlaintextRows migrates any old plaintext JWT rows to DPAPI blobs.
 func (s *Store) resealPlaintextRows() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -125,6 +126,7 @@ func (s *Store) migrateOldJSON(jsonPath string) error {
 	return nil
 }
 
+// Load returns all stored accounts with decrypted tokens.
 func (s *Store) Load() (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -143,7 +145,6 @@ func (s *Store) Load() (map[string]string, error) {
 		}
 		plain, err := openToken(stored)
 		if err != nil {
-			// skip undecryptable rows (other user / corrupted)
 			continue
 		}
 		out[name] = plain
@@ -151,6 +152,7 @@ func (s *Store) Load() (map[string]string, error) {
 	return out, rows.Err()
 }
 
+// Get returns the decrypted token for account, or ok=false when absent.
 func (s *Store) Get(account string) (string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -170,6 +172,7 @@ func (s *Store) Get(account string) (string, bool, error) {
 	return plain, true, nil
 }
 
+// Put seals and stores the token for account, replacing any existing entry.
 func (s *Store) Put(account, token string) error {
 	account = strings.TrimSpace(account)
 	if account == "" || token == "" {
@@ -189,6 +192,7 @@ func (s *Store) Put(account, token string) error {
 	return err
 }
 
+// Delete removes the stored token for account.
 func (s *Store) Delete(account string) error {
 	account = strings.TrimSpace(account)
 	if account == "" {
@@ -210,6 +214,7 @@ func (s *Store) Delete(account string) error {
 	return nil
 }
 
+// Merge inserts or updates multiple account tokens in one transaction.
 func (s *Store) Merge(extra map[string]string) error {
 	if len(extra) == 0 {
 		return nil
@@ -249,6 +254,7 @@ func (s *Store) Merge(extra map[string]string) error {
 	return tx.Commit()
 }
 
+// Close closes the underlying database.
 func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

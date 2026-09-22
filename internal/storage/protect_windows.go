@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// App-specific DPAPI entropy so blobs are not generic user DPAPI dumps.
 var protectEntropy = []byte("NFA-Tool-Recode-v2\x00accounts\x00v1")
 
 const (
@@ -61,7 +60,7 @@ func sealToken(plain string) (string, error) {
 		return "", fmt.Errorf("empty token")
 	}
 	if strings.HasPrefix(plain, tokenPrefix) {
-		return plain, nil // already sealed
+		return plain, nil
 	}
 	in := blobFrom([]byte(plain))
 	ent := blobFrom(protectEntropy)
@@ -93,7 +92,6 @@ func openToken(stored string) (string, error) {
 	if stored == "" {
 		return "", fmt.Errorf("empty token")
 	}
-	// plaintext JWT (pre-encryption DB) — migrate path
 	if !strings.HasPrefix(stored, tokenPrefix) {
 		if looksLikeJWT(stored) {
 			return stored, nil

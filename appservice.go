@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -17,9 +21,11 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// AppName / AppVersion shown in the UI title bar.
-const AppName = "NFA Tool Recode v2"
-const AppVersion = "2.1.2"
+// AppName is the product display name shown in the UI title bar.
+const AppName = "NFA Tool"
+
+// AppVersion is the single source of truth: main.go, GetVersion and the updater read it.
+const AppVersion = "3.0.0"
 
 // GetAppName returns the product display name.
 func (s *AppService) GetAppName() string {
@@ -30,6 +36,15 @@ func (s *AppService) GetAppName() string {
 type AppService struct {
 	store  *storage.Store
 	gdrive *gdrive.Client
+	base   string
+
+	bulkMu   sync.Mutex
+	lastBulk []bulkExportEntry
+}
+
+type bulkExportEntry struct {
+	line string
+	ok   bool
 }
 
 // AccountDTO is exposed to the frontend.
@@ -37,6 +52,7 @@ type AccountDTO struct {
 	Name      string `json:"name"`
 	ExpiresIn string `json:"expiresIn"`
 	Valid     bool   `json:"valid"`
+	Avatar    string `json:"avatar,omitempty"`
 }
 
 // Result is a generic UI response.
@@ -45,6 +61,7 @@ type Result struct {
 	Message string `json:"message"`
 }
 
+// NewAppService creates the backend service rooted at the executable's directory.
 func NewAppService() *AppService {
 	base, err := os.Executable()
 	if err != nil {
@@ -61,17 +78,17 @@ func NewAppService() *AppService {
 	}
 	store, err := storage.New(base)
 	if err != nil {
-		// Fall back to cwd so the app still starts; operations will fail with clear errors if store is nil-checked.
-		// storage.New rarely fails; panic is worse for a GUI app.
 		store, _ = storage.New(".")
 		base = "."
 	}
 	return &AppService{
 		store:  store,
 		gdrive: gdrive.New(base),
+		base:   base,
 	}
 }
 
+// GetVersion returns the current app version.
 func (s *AppService) GetVersion() string {
 	return AppVersion
 }
@@ -86,7 +103,6 @@ func (s *AppService) InstallUpdate(downloadURL string) Result {
 	if err := update.ApplyDownload(downloadURL); err != nil {
 		return s.fail(err.Error())
 	}
-	// quit so the bat can replace the file
 	go func() {
 		time.Sleep(600 * time.Millisecond)
 		if app := application.Get(); app != nil {
@@ -103,9 +119,63 @@ func (s *AppService) OpenURL(url string) {
 	_ = openBrowser(url)
 }
 
+var avatarHTTP = &http.Client{Timeout: 8 * time.Second}
+
+func (s *AppService) avatarPath(steamID string) string {
+	return filepath.Join(s.base, "avatars", steamID+".jpg")
+}
+
+func (s *AppService) cacheAvatar(steamID, url string) {
+	if steamID == "" || url == "" {
+		return
+	}
+	p := s.avatarPath(steamID)
+	if _, err := os.Stat(p); err == nil {
+		return
+	}
+	resp, err := avatarHTTP.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil || len(data) == 0 {
+		return
+	}
+	_ = os.MkdirAll(filepath.Dir(p), 0o755)
+	_ = os.WriteFile(p, data, 0o644)
+}
+
+func (s *AppService) cachedAvatar(steamID string) string {
+	if steamID == "" {
+		return ""
+	}
+	data, err := os.ReadFile(s.avatarPath(steamID))
+	if err != nil || len(data) == 0 || len(data) > 2<<20 {
+		return ""
+	}
+	return "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(data)
+}
+
+func (s *AppService) dropAvatar(steamID string) {
+	if steamID != "" {
+		_ = os.Remove(s.avatarPath(steamID))
+	}
+}
+
+func (s *AppService) dropAvatarFor(account string) {
+	if tok, ok, err := s.store.Get(account); err == nil && ok {
+		if ti, err := token.ParseAndValidate(tok); err == nil {
+			s.dropAvatar(ti.SteamID)
+		}
+	}
+}
+
+// ListAccounts returns all stored accounts with validity, expiry and cached avatar.
 func (s *AppService) ListAccounts() ([]AccountDTO, error) {
-	// Do NOT harvest Steam ConnectCache here — that re-imported deleted accounts
-	// after every refresh. Harvest only once when the local DB is empty.
 	if m0, err := s.store.Load(); err == nil && len(m0) == 0 {
 		if harvested, err := steam.HarvestConnectCache(); err == nil && len(harvested) > 0 {
 			_ = s.store.Merge(harvested)
@@ -122,6 +192,7 @@ func (s *AppService) ListAccounts() ([]AccountDTO, error) {
 		if info, err := token.ParseAndValidate(tok); err == nil {
 			dto.Valid = true
 			dto.ExpiresIn = formatExpiryUntil(info.ExpiresAt)
+			dto.Avatar = s.cachedAvatar(info.SteamID)
 		} else {
 			dto.ExpiresIn = "expired/invalid"
 		}
@@ -130,6 +201,89 @@ func (s *AppService) ListAccounts() ([]AccountDTO, error) {
 	return out, nil
 }
 
+func emitLoginStage(account, stage string) {
+	if app := application.Get(); app != nil {
+		app.Event.Emit("login:stage", map[string]string{"account": account, "stage": stage})
+	}
+}
+
+func emitBulkItem(it steam.BulkCheckItem) {
+	if app := application.Get(); app != nil {
+		app.Event.Emit("bulk:item", it)
+	}
+}
+
+func (s *AppService) rememberBulk(line string, ok bool) {
+	if line == "" {
+		return
+	}
+	s.bulkMu.Lock()
+	s.lastBulk = append(s.lastBulk, bulkExportEntry{line: line, ok: ok})
+	s.bulkMu.Unlock()
+}
+
+// ExportBulkResults writes the lines of the last bulk check to a user-picked
+// text file: which="ok" exports working accounts, anything else the rest.
+// Returns the written file path, or an empty string if the dialog was
+// cancelled.
+func (s *AppService) ExportBulkResults(which string) (string, error) {
+	s.bulkMu.Lock()
+	entries := append([]bulkExportEntry(nil), s.lastBulk...)
+	s.bulkMu.Unlock()
+	if len(entries) == 0 {
+		return "", fmt.Errorf("no bulk check results to export")
+	}
+	wantOK := which == "ok"
+	lines := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.ok == wantOK {
+			lines = append(lines, e.line)
+		}
+	}
+	if len(lines) == 0 {
+		return "", fmt.Errorf("nothing to export")
+	}
+
+	app := application.Get()
+	if app == nil {
+		return "", fmt.Errorf("dialog unavailable")
+	}
+	name := "failed-accounts.txt"
+	if wantOK {
+		name = "working-accounts.txt"
+	}
+	dlg := app.Dialog.SaveFile()
+	if dlg == nil {
+		return "", fmt.Errorf("dialog unavailable")
+	}
+	dlg.SetMessage("Export accounts")
+	dlg.SetFilename(name)
+	dlg.AddFilter("Text files", "*.txt")
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil {
+		return "", err
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", nil
+	}
+	if !strings.HasSuffix(strings.ToLower(path), ".txt") {
+		path += ".txt"
+	}
+	content := strings.Join(lines, "\r\n") + "\r\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (s *AppService) resyncSteamTokens() {
+	if harvested, err := steam.HarvestConnectCache(); err == nil && len(harvested) > 0 {
+		_ = s.store.Merge(harvested)
+	}
+}
+
+// LoginFromKey validates a pasted login----token key and logs into Steam with it.
 func (s *AppService) LoginFromKey(accountKey string, keepExisting bool) Result {
 	account, rawTok, err := token.ParseAccountKey(accountKey)
 	if err != nil {
@@ -143,25 +297,46 @@ func (s *AppService) LoginFromKey(accountKey string, keepExisting bool) Result {
 		return s.fail("account name required (use login----token)")
 	}
 
-	err = steam.Login(steam.LoginOptions{
+	windowSeen, err := steam.Login(steam.LoginOptions{
 		AccountName:  account,
 		Token:        info.Raw,
 		SteamID:      info.SteamID,
 		KeepExisting: keepExisting,
+		OnProgress:   func(stage string) { emitLoginStage(account, stage) },
 	})
 	if err != nil {
 		return s.fail(err.Error())
 	}
 	_ = s.store.Put(account, info.Raw)
+	s.resyncSteamTokens()
 	msg := fmt.Sprintf("Logged in as %s · token valid until %s", account, formatExpiryUntil(info.ExpiresAt))
-	if !steam.IsSteamRunning() {
+	if !windowSeen {
 		msg += " · warning: steam.exe not detected after launch"
 	}
 	return s.ok(msg)
 }
 
-func (s *AppService) LoginSaved(account string, keepExisting bool) Result {
-	tok, ok, err := s.store.Get(account)
+// SaveAccountKey validates and stores a pasted key without logging into Steam.
+func (s *AppService) SaveAccountKey(accountKey string) Result {
+	account, rawTok, err := token.ParseAccountKey(accountKey)
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	info, err := token.ParseAndValidate(rawTok)
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	if account == "" {
+		return s.fail("account name required (use login----token)")
+	}
+	if err := s.store.Put(account, info.Raw); err != nil {
+		return s.fail(err.Error())
+	}
+	return s.ok(fmt.Sprintf("Saved as %s · token valid until %s", account, formatExpiryUntil(info.ExpiresAt)))
+}
+
+// LoginSaved logs into Steam using a token already stored under account.
+func (s *AppService) LoginSaved(account string, keepExisting bool) Result {	tok, ok, err := s.store.Get(account)
 	if err != nil {
 		return s.fail(err.Error())
 	}
@@ -173,21 +348,137 @@ func (s *AppService) LoginSaved(account string, keepExisting bool) Result {
 		return s.fail(err.Error())
 	}
 
-	err = steam.Login(steam.LoginOptions{
+	windowSeen, err := steam.Login(steam.LoginOptions{
 		AccountName:  account,
 		Token:        info.Raw,
 		SteamID:      info.SteamID,
 		KeepExisting: keepExisting,
+		OnProgress:   func(stage string) { emitLoginStage(account, stage) },
 	})
 	if err != nil {
 		return s.fail(err.Error())
 	}
 	_ = s.store.Put(account, info.Raw)
+	s.resyncSteamTokens()
 	msg := fmt.Sprintf("Logged in as %s · token valid until %s", account, formatExpiryUntil(info.ExpiresAt))
-	if !steam.IsSteamRunning() {
+	if !windowSeen {
 		msg += " · warning: steam.exe not detected after launch"
 	}
 	return s.ok(msg)
+}
+
+// PickTextFile opens a file dialog and returns the file's text content
+// (used by the bulk checker to load a .txt with keys).
+func (s *AppService) PickTextFile() (string, error) {
+	app := application.Get()
+	if app == nil {
+		return "", fmt.Errorf("dialog unavailable")
+	}
+	dlg := app.Dialog.OpenFile()
+	if dlg == nil {
+		return "", fmt.Errorf("dialog unavailable")
+	}
+	dlg.SetTitle("Open text file")
+	dlg.AddFilter("Text files", "*.txt")
+	dlg.AddFilter("All files", "*.*")
+	path, err := dlg.PromptForSingleSelection()
+	if err != nil {
+		return "", err
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", nil
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(raw), nil
+}
+
+// BulkCheckResult is the outcome of a bulk token check.
+type BulkCheckResult struct {
+	Total int                  `json:"total"`
+	Items []steam.BulkCheckItem `json:"items"`
+}
+
+func splitProxyLines(s string) []string {
+	var out []string
+	for _, line := range strings.Split(s, "\n") {
+		if line = strings.TrimSpace(strings.TrimSuffix(line, "\r")); line != "" {
+			out = append(out, line)
+		}
+	}
+	return out
+}
+
+// CheckAccountKeys bulk-checks pasted keys (login----token per line),
+// optionally distributing requests over the given proxies. Each finished item
+// is streamed to the frontend as a "bulk:item" event.
+func (s *AppService) CheckAccountKeys(input, proxies string) BulkCheckResult {
+	entries, errs := token.ParseBulkKeys(input)
+	items := make([]steam.BulkCheckItem, 0, len(entries)+len(errs))
+
+	s.bulkMu.Lock()
+	s.lastBulk = s.lastBulk[:0]
+	s.bulkMu.Unlock()
+
+	for _, e := range errs {
+		it := steam.BulkCheckItem{Account: e, Status: "invalid"}
+		items = append(items, it)
+		s.rememberBulk(e, false)
+		emitBulkItem(it)
+	}
+	onItem := func(it steam.BulkCheckItem, src token.ParsedKey) {
+		s.rememberBulk(src.Account+"----"+src.Token, it.Status == "ok")
+		emitBulkItem(it)
+	}
+	items = append(items, steam.CheckTokens(entries, splitProxyLines(proxies), onItem)...)
+	return BulkCheckResult{Total: len(items), Items: items}
+}
+
+// CheckSavedAccounts bulk-checks every stored token.
+func (s *AppService) CheckSavedAccounts(proxies string) BulkCheckResult {
+	m, err := s.store.Load()
+	if err != nil {
+		return BulkCheckResult{}
+	}
+	names := make([]string, 0, len(m))
+	for name := range m {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	entries := make([]token.ParsedKey, 0, len(m))
+	for _, name := range names {
+		entries = append(entries, token.ParsedKey{Account: name, Token: m[name]})
+	}
+
+	s.bulkMu.Lock()
+	s.lastBulk = s.lastBulk[:0]
+	s.bulkMu.Unlock()
+
+	onItem := func(it steam.BulkCheckItem, src token.ParsedKey) {
+		s.rememberBulk(src.Account+"----"+src.Token, it.Status == "ok")
+		emitBulkItem(it)
+	}
+	items := steam.CheckTokens(entries, splitProxyLines(proxies), onItem)
+	return BulkCheckResult{Total: len(items), Items: items}
+}
+
+// HarvestSteamAccounts re-reads Steam's local session files (ConnectCache +
+// loginusers.vdf) and merges found accounts into the store.
+func (s *AppService) HarvestSteamAccounts() Result {
+	harvested, err := steam.HarvestConnectCache()
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	if len(harvested) == 0 {
+		return s.fail("no accounts found in Steam files")
+	}
+	if err := s.store.Merge(harvested); err != nil {
+		return s.fail(err.Error())
+	}
+	return s.ok(fmt.Sprintf("Harvested %d account(s)", len(harvested)))
 }
 
 // Notify shows a native Windows message box. Frontend should pass already-translated title/message.
@@ -221,11 +512,83 @@ func (s *AppService) fail(msg string) Result {
 	return Result{OK: false, Message: msg}
 }
 
+// SystemStatus is the diagnostics snapshot for the Logs tab.
+type SystemStatus struct {
+	Version        string `json:"version"`
+	SteamRunning   bool   `json:"steamRunning"`
+	SteamPath      string `json:"steamPath"`
+	AccountsTotal  int    `json:"accountsTotal"`
+	AccountsValid  int    `json:"accountsValid"`
+	DriveConnected bool   `json:"driveConnected"`
+	SteamAPIOnline bool   `json:"steamApiOnline"`
+}
+
+// GetSystemStatus collects local + network diagnostics (no proxy).
+func (s *AppService) GetSystemStatus() SystemStatus {
+	st := SystemStatus{Version: AppVersion, SteamRunning: steam.IsSteamRunning()}
+	if p, err := steam.GetSteamInstallPathNoKill(); err == nil {
+		st.SteamPath = p
+	}
+	if m, err := s.store.Load(); err == nil {
+		st.AccountsTotal = len(m)
+		for _, tok := range m {
+			if _, err := token.ParseAndValidate(tok); err == nil {
+				st.AccountsValid++
+			}
+		}
+	}
+	if s.gdrive != nil {
+		st.DriveConnected = s.gdrive.GetStatus().Connected
+	}
+	st.SteamAPIOnline = steam.APIReachable()
+	return st
+}
+
+// CheckAccountKey runs the full info check for an arbitrary pasted key
+// (login----token or bare token), without saving it.
+func (s *AppService) CheckAccountKey(accountKey string) (steam.AccountInfo, error) {
+	_, rawTok, err := token.ParseAccountKey(accountKey)
+	if err != nil {
+		return steam.AccountInfo{}, err
+	}
+	info, err := token.ParseAndValidate(rawTok)
+	if err != nil {
+		return steam.AccountInfo{}, err
+	}
+	out := steam.FetchAccountInfo(info.Raw, info.SteamID)
+	if out.AvatarFull != "" {
+		go s.cacheAvatar(out.SteamID, out.AvatarFull)
+	}
+	return *out, nil
+}
+
+// GetAccountInfo collects public account details using the saved token.
+func (s *AppService) GetAccountInfo(account string) (steam.AccountInfo, error) {
+	tok, ok, err := s.store.Get(account)
+	if err != nil {
+		return steam.AccountInfo{}, err
+	}
+	if !ok {
+		return steam.AccountInfo{}, fmt.Errorf("account not found")
+	}
+	info, err := token.ParseAndValidate(tok)
+	if err != nil {
+		return steam.AccountInfo{}, err
+	}
+	out := steam.FetchAccountInfo(info.Raw, info.SteamID)
+	if out.AvatarFull != "" {
+		go s.cacheAvatar(out.SteamID, out.AvatarFull)
+	}
+	return *out, nil
+}
+
+// DeleteAccount removes a saved account and its cached avatar.
 func (s *AppService) DeleteAccount(account string) Result {
 	account = strings.TrimSpace(account)
 	if account == "" {
 		return s.fail("account name required")
 	}
+	s.dropAvatarFor(account)
 	if err := s.store.Delete(account); err != nil {
 		return s.fail(err.Error())
 	}
@@ -247,6 +610,7 @@ func (s *AppService) DeleteAccounts(names []string) Result {
 			continue
 		}
 		seen[key] = true
+		s.dropAvatarFor(n)
 		if err := s.store.Delete(n); err != nil {
 			lastErr = err.Error()
 			continue
@@ -446,7 +810,6 @@ func (s *AppService) ExportTokensToGoogleDrive(names []string) Result {
 	name := fmt.Sprintf("nfa-tokens-%s.txt", time.Now().Format("2006-01-02_150405"))
 	link, err := s.gdrive.UploadText(name, text)
 	if err != nil {
-		// one reconnect attempt
 		if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "invalid_grant") {
 			if err2 := s.gdrive.Connect(openBrowser); err2 == nil {
 				link, err = s.gdrive.UploadText(name, text)
@@ -531,7 +894,6 @@ func (s *AppService) buildExport(names []string) (string, int, error) {
 	for k := range all {
 		keys = append(keys, k)
 	}
-	// case-insensitive stable-ish order
 	for i := 0; i < len(keys); i++ {
 		for j := i + 1; j < len(keys); j++ {
 			if strings.ToLower(keys[j]) < strings.ToLower(keys[i]) {
@@ -552,6 +914,7 @@ func (s *AppService) buildExport(names []string) (string, int, error) {
 	return strings.Join(lines, "\n") + "\n", len(lines), nil
 }
 
+// ResetSteam asks for confirmation, then wipes Steam config/userdata and relaunches it.
 func (s *AppService) ResetSteam() Result {
 	app := application.Get()
 	if app == nil {
@@ -583,6 +946,7 @@ func (s *AppService) ResetSteam() Result {
 	return s.ok("Steam has been reset")
 }
 
+// WindowMinimise minimises the current window.
 func (s *AppService) WindowMinimise() {
 	if app := application.Get(); app != nil {
 		if w := app.Window.Current(); w != nil {
@@ -591,12 +955,12 @@ func (s *AppService) WindowMinimise() {
 	}
 }
 
+// WindowClose cancels pending auth, closes the guide window and quits the app.
 func (s *AppService) WindowClose() {
 	if s.gdrive != nil {
 		s.gdrive.CancelAuth()
 	}
 	if app := application.Get(); app != nil {
-		// close guide window first if open
 		if w, ok := app.Window.GetByName("drive-guide"); ok && w != nil {
 			w.Close()
 		}
@@ -642,7 +1006,6 @@ func (s *AppService) CloseDriveGuide() {
 	}
 }
 
-// formatExpiryUntil returns a stable UTC timestamp for UI/i18n, e.g. 2026-09-15 14:30 UTC
 func formatExpiryUntil(t time.Time) string {
 	if t.IsZero() {
 		return "unknown"

@@ -67,8 +67,8 @@ wails3 dev
 3. Tag and push:
 
 ```powershell
-git tag v2.1.2
-git push origin v2.1.2
+git tag v3.0.0
+git push origin v3.0.0
 ```
 
 GitHub Actions (`.github/workflows/release.yml`) builds Windows exe and publishes a Release with  

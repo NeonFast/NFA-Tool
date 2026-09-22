@@ -14,12 +14,16 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func GetSteamInstallPath() (string, error)       { return getSteamInstallPath(true) }
+// GetSteamInstallPath returns Steam's install directory, killing the client first.
+func GetSteamInstallPath() (string, error) { return getSteamInstallPath(true) }
+
+// GetSteamInstallPathNoKill returns Steam's install directory without touching the client.
 func GetSteamInstallPathNoKill() (string, error) { return getSteamInstallPath(false) }
-func InstallPath(kill bool) (string, error)      { return getSteamInstallPath(kill) }
+
+// InstallPath returns Steam's install directory; kill controls whether the client is stopped.
+func InstallPath(kill bool) (string, error) { return getSteamInstallPath(kill) }
 
 func getSteamInstallPath(kill bool) (string, error) {
-	// Prefer SteamPath (roster / shefu)
 	if k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Valve\Steam`, registry.QUERY_VALUE); err == nil {
 		if sp, _, err := k.GetStringValue("SteamPath"); err == nil && sp != "" {
 			k.Close()
@@ -49,6 +53,7 @@ func getSteamInstallPath(kill bool) (string, error) {
 	return "", fmt.Errorf("steam not found — is it installed?")
 }
 
+// GetLocalVDFPath returns the path to Steam's local.vdf under LOCALAPPDATA.
 func GetLocalVDFPath() (string, error) {
 	app := os.Getenv("LOCALAPPDATA")
 	if app == "" {
@@ -60,9 +65,10 @@ func GetLocalVDFPath() (string, error) {
 	return filepath.Join(app, "Steam", "local.vdf"), nil
 }
 
+// LocalVDFPath is an alias for GetLocalVDFPath.
 func LocalVDFPath() (string, error) { return GetLocalVDFPath() }
 
-// KillSteam — roster style: steam.exe + steamwebhelper with /T
+// KillSteam force-kills steam.exe and steamwebhelper.exe process trees.
 func KillSteam() error {
 	runHidden("taskkill", "/F", "/IM", "steam.exe", "/T")
 	time.Sleep(400 * time.Millisecond)
@@ -73,17 +79,16 @@ func KillSteam() error {
 
 func runHidden(name string, args ...string) {
 	cmd := exec.Command(name, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	_ = cmd.Run()
 }
 
-// LaunchSteam — roster: DETACHED_PROCESS, direct steam.exe (not child chain via cmd)
+// LaunchSteam starts steam.exe detached, preferring an unelevated launch via explorer.
 func LaunchSteam(installDir string) error {
 	exe := filepath.Join(installDir, "steam.exe")
 	if _, err := os.Stat(exe); err != nil {
 		return fmt.Errorf("steam.exe not found")
 	}
-	// Prefer unelevated via explorer when we are admin (UI otherwise broken)
 	if isProcessElevated() {
 		if err := launchViaExplorer(exe); err == nil {
 			time.Sleep(1 * time.Second)
@@ -92,11 +97,10 @@ func LaunchSteam(installDir string) error {
 			}
 		}
 	}
-	// roster fallback: detached direct spawn
 	cmd := exec.Command(exe)
 	cmd.Dir = installDir
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: 0x00000008, // DETACHED_PROCESS
+		CreationFlags: 0x00000008,
 	}
 	if err := cmd.Start(); err != nil {
 		return err
@@ -148,8 +152,10 @@ func launchViaExplorer(target string) error {
 	return nil
 }
 
+// IsSteamRunning reports whether a steam.exe process exists.
 func IsSteamRunning() bool { return findPID("steam.exe") != 0 }
 
+// SetAutoLoginUser writes the AutoLoginUser value in Steam's registry key.
 func SetAutoLoginUser(account string) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Valve\Steam`, registry.SET_VALUE)
 	if err != nil {

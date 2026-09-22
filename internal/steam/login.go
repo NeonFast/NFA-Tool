@@ -10,24 +10,22 @@ import (
 	"time"
 )
 
+// LoginOptions configures a token login run.
 type LoginOptions struct {
 	AccountName  string
 	Token        string
 	SteamID      string
-	KeepExisting bool // always merge-safe now (surgical edits)
+	KeepExisting bool
+	OnProgress   func(stage string)
 }
 
 // Login injects a refresh token into the Steam client session files.
-// Approach: surgical VDF edits (inspired by public switchers; reimplemented here).
-//
-//  1. Require Steam config already exists (open Steam once first)
-//  2. Kill steam.exe / steamwebhelper
-//  3. Patch loginusers.vdf (active user)
-//  4. Upsert ConnectCache in local.vdf (keep other tokens)
-//  5. Ensure Accounts entry in config.vdf (no full rewrite)
-//  6. Set AutoLoginUser
-//  7. Launch steam.exe detached / unelevated
-func Login(opt LoginOptions) error {
+func Login(opt LoginOptions) (bool, error) {
+	report := func(stage string) {
+		if opt.OnProgress != nil {
+			opt.OnProgress(stage)
+		}
+	}
 	account := strings.ToLower(strings.TrimSpace(opt.AccountName))
 	if i := strings.Index(account, "@"); i >= 0 {
 		account = account[:i]
@@ -35,12 +33,13 @@ func Login(opt LoginOptions) error {
 	token := strings.TrimSpace(opt.Token)
 	steamID := strings.TrimSpace(opt.SteamID)
 	if account == "" || token == "" || steamID == "" {
-		return fmt.Errorf("account, token and steam id are required")
+		return false, fmt.Errorf("account, token and steam id are required")
 	}
 
+	report("find_steam")
 	install, err := GetSteamInstallPathNoKill()
 	if err != nil {
-		return err
+		return false, err
 	}
 	configDir := filepath.Join(install, "config")
 	configPath := filepath.Join(configDir, "config.vdf")
@@ -51,41 +50,46 @@ func Login(opt LoginOptions) error {
 	}
 	localPath := filepath.Join(localDir, "local.vdf")
 
-	// Roster: fail if Steam never created configs
 	if !fileExists(configPath) || !fileExists(usersPath) {
-		return fmt.Errorf("open Steam and sign in once so it can create its config files, then try again")
+		return false, fmt.Errorf("open Steam and sign in once so it can create its config files, then try again")
 	}
 
-	// stop client
+	report("stop_steam")
 	_ = KillSteam()
 
-	// 1) loginusers — line surgery
+	report("loginusers")
 	if err := setLoginUsersActive(usersPath, account, steamID); err != nil {
-		return fmt.Errorf("loginusers.vdf: %w", err)
+		return false, fmt.Errorf("loginusers.vdf: %w", err)
 	}
 
-	// 2) local.vdf ConnectCache — upsert only
+	report("connectcache")
 	if err := storeConnectCacheToken(localPath, account, token); err != nil {
-		return fmt.Errorf("local.vdf: %w", err)
+		return false, fmt.Errorf("local.vdf: %w", err)
 	}
 
-	// 3) config.vdf Accounts inject if needed
+	report("config_vdf")
 	_ = injectConfigAccount(configPath, account, steamID)
 
-	// 4) registry
+	report("registry")
 	if err := SetAutoLoginUser(account); err != nil {
-		return fmt.Errorf("AutoLoginUser: %w", err)
+		return false, fmt.Errorf("AutoLoginUser: %w", err)
 	}
 
-	// ACL so medium-IL Steam can read what elevated process wrote
+	report("acl")
 	fixACL(usersPath)
 	fixACL(localPath)
 	fixACL(configPath)
 
 	time.Sleep(400 * time.Millisecond)
-	return LaunchSteam(install)
+	report("launch")
+	if err := LaunchSteam(install); err != nil {
+		return false, err
+	}
+	report("wait_window")
+	return WaitForSteamWindow(25 * time.Second), nil
 }
 
+// ResetSteam wipes Steam's userdata and config directories and relaunches the client.
 func ResetSteam() error {
 	install, err := GetSteamInstallPath()
 	if err != nil {
@@ -112,6 +116,7 @@ func ResetSteam() error {
 	return LaunchSteam(install)
 }
 
+// ReadLoginUsers returns the account names listed in loginusers.vdf.
 func ReadLoginUsers() ([]string, error) {
 	install, err := GetSteamInstallPathNoKill()
 	if err != nil {
@@ -135,6 +140,8 @@ func ReadLoginUsers() ([]string, error) {
 	return names, nil
 }
 
+// HarvestConnectCache decrypts ConnectCache tokens from local.vdf for every
+// account listed in loginusers.vdf.
 func HarvestConnectCache() (map[string]string, error) {
 	names, err := ReadLoginUsers()
 	if err != nil || len(names) == 0 {
@@ -148,7 +155,6 @@ func HarvestConnectCache() (map[string]string, error) {
 	if err != nil {
 		return map[string]string{}, nil
 	}
-	// map store_key -> encrypted
 	enc := map[string]string{}
 	for _, line := range strings.Split(string(data), "\n") {
 		fields := quotedFields(line)
@@ -168,6 +174,7 @@ func HarvestConnectCache() (map[string]string, error) {
 	return out, nil
 }
 
+// AccountCRCKey derives the ConnectCache store key for an account name.
 func AccountCRCKey(account string) string {
 	crc := crc32.ChecksumIEEE([]byte(account))
 	hex := fmt.Sprintf("%08x", crc)
@@ -178,18 +185,14 @@ func AccountCRCKey(account string) string {
 	return trimmed + "1"
 }
 
-// --- surgical loginusers (roster set_active) ---
-
 func setLoginUsersActive(path, username, steamID string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	s := string(content)
-	// demote all MostRecent
 	s = strings.ReplaceAll(s, `"MostRecent"		"1"`, `"MostRecent"		"0"`)
 	s = strings.ReplaceAll(s, "\"MostRecent\"\t\t\"1\"", "\"MostRecent\"\t\t\"0\"")
-	// demote AutoLogin too (live Steam)
 	s = strings.ReplaceAll(s, `"AutoLogin"		"1"`, `"AutoLogin"		"0"`)
 	s = strings.ReplaceAll(s, "\"AutoLogin\"\t\t\"1\"", "\"AutoLogin\"\t\t\"0\"")
 	s = strings.ReplaceAll(s, `"AllowAutoLogin"		"1"`, `"AllowAutoLogin"		"0"`)
@@ -199,7 +202,6 @@ func setLoginUsersActive(path, username, steamID string) error {
 		s = refreshUserBlock(s, username, steamID)
 	} else {
 		block := newUserBlock(username, steamID)
-		// insert before last closing brace of file
 		idx := strings.LastIndex(s, "}")
 		if idx < 0 {
 			return fmt.Errorf("loginusers.vdf malformed")
@@ -218,7 +220,6 @@ func refreshUserBlock(content, username, steamID string) string {
 		out.WriteString(line)
 		out.WriteByte('\n')
 		if isSteamIDHeader(line, steamID) {
-			// rewrite body until closing }
 			i++
 			seenRemember, seenAuto, seenMost, seenAutoLogin := false, false, false, false
 			var body []string
@@ -232,7 +233,6 @@ func refreshUserBlock(content, username, steamID string) string {
 					break
 				}
 			}
-			// ensure required fields before last }
 			if len(body) > 0 {
 				closing := body[len(body)-1]
 				body = body[:len(body)-1]
@@ -268,8 +268,7 @@ func rewriteLoginField(line, username string, seenRemember, seenAuto, seenMost, 
 	case strings.Contains(line, `"AccountName"`):
 		return "\t\t\"AccountName\"\t\t\"" + username + "\""
 	case strings.Contains(line, `"PersonaName"`):
-		// keep existing persona if present — only set if empty-ish; roster keeps/overwrites account name style
-		return line // preserve persona from Steam
+		return line
 	case strings.Contains(line, `"MostRecent"`):
 		*seenMost = true
 		return "\t\t\"MostRecent\"\t\t\"1\""
@@ -312,8 +311,6 @@ func isSteamIDHeader(line, steamID string) bool {
 	return len(fields) == 1 && fields[0] == steamID
 }
 
-// --- ConnectCache surgical upsert (roster store_token) ---
-
 func storeConnectCacheToken(path, username, token string) error {
 	key := AccountCRCKey(username)
 	encrypted, err := EncryptToken(token, username)
@@ -324,7 +321,6 @@ func storeConnectCacheToken(path, username, token string) error {
 
 	existing, err := os.ReadFile(path)
 	if err != nil {
-		// fresh file only if missing
 		return os.WriteFile(path, []byte(freshLocalVDF(key, encrypted)), 0o644)
 	}
 	content := string(existing)
@@ -334,7 +330,6 @@ func storeConnectCacheToken(path, username, token string) error {
 	if updated, ok := insertConnectCacheBlock(content, key, encrypted); ok {
 		return os.WriteFile(path, []byte(updated), 0o644)
 	}
-	// last resort: do NOT wipe other tokens — refuse
 	return fmt.Errorf("local.vdf has unexpected layout; not overwriting it")
 }
 
@@ -411,7 +406,6 @@ func insertConnectCacheBlock(content, key, encrypted string) (string, bool) {
 		if inserted || !strings.HasPrefix(trim, "{") {
 			continue
 		}
-		// indent one more tab than Steam's brace line
 		indent := leadingWS(line) + "\t"
 		out.WriteString(indent + "\"ConnectCache\"\n")
 		out.WriteString(indent + "{\n")
@@ -441,7 +435,6 @@ func freshLocalVDF(key, encrypted string) string {
 		"}\n"
 }
 
-// injectConfigAccount — shefu style: only add Accounts entry if SteamID missing
 func injectConfigAccount(path, username, steamID string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {

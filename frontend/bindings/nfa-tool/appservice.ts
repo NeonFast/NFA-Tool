@@ -15,6 +15,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as gdrive$0 from "./internal/gdrive/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as steam$0 from "./internal/steam/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as update$0 from "./internal/update/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -29,10 +32,34 @@ export function CancelGoogleAuth(): $CancellablePromise<$models.Result> {
 }
 
 /**
+ * CheckAccountKey runs the full info check for an arbitrary pasted key
+ * (login----token or bare token), without saving it.
+ */
+export function CheckAccountKey(accountKey: string): $CancellablePromise<steam$0.AccountInfo> {
+    return $Call.ByID(3138113244, accountKey);
+}
+
+/**
+ * CheckAccountKeys bulk-checks pasted keys (login----token per line),
+ * optionally distributing requests over the given proxies. Each finished item
+ * is streamed to the frontend as a "bulk:item" event.
+ */
+export function CheckAccountKeys(input: string, proxies: string): $CancellablePromise<$models.BulkCheckResult> {
+    return $Call.ByID(580279677, input, proxies);
+}
+
+/**
  * CheckForUpdates queries GitHub Releases for a newer version.
  */
 export function CheckForUpdates(): $CancellablePromise<update$0.Info> {
     return $Call.ByID(3671876993);
+}
+
+/**
+ * CheckSavedAccounts bulk-checks every stored token.
+ */
+export function CheckSavedAccounts(proxies: string): $CancellablePromise<$models.BulkCheckResult> {
+    return $Call.ByID(2660853377, proxies);
 }
 
 /**
@@ -49,6 +76,9 @@ export function ConnectGoogleDrive(): $CancellablePromise<$models.Result> {
     return $Call.ByID(1578148157);
 }
 
+/**
+ * DeleteAccount removes a saved account and its cached avatar.
+ */
 export function DeleteAccount(account: string): $CancellablePromise<$models.Result> {
     return $Call.ByID(991878028, account);
 }
@@ -65,6 +95,16 @@ export function DeleteAccounts(names: string[] | null): $CancellablePromise<$mod
  */
 export function DisconnectGoogleDrive(): $CancellablePromise<$models.Result> {
     return $Call.ByID(1131272017);
+}
+
+/**
+ * ExportBulkResults writes the lines of the last bulk check to a user-picked
+ * text file: which="ok" exports working accounts, anything else the rest.
+ * Returns the written file path, or an empty string if the dialog was
+ * cancelled.
+ */
+export function ExportBulkResults(which: string): $CancellablePromise<string> {
+    return $Call.ByID(487431146, which);
 }
 
 /**
@@ -89,12 +129,29 @@ export function ExportTokensToGoogleDrive(names: string[] | null): $CancellableP
 }
 
 /**
+ * GetAccountInfo collects public account details using the saved token.
+ */
+export function GetAccountInfo(account: string): $CancellablePromise<steam$0.AccountInfo> {
+    return $Call.ByID(3779264705, account);
+}
+
+/**
  * GetAppName returns the product display name.
  */
 export function GetAppName(): $CancellablePromise<string> {
     return $Call.ByID(1997395214);
 }
 
+/**
+ * GetSystemStatus collects local + network diagnostics (no proxy).
+ */
+export function GetSystemStatus(): $CancellablePromise<$models.SystemStatus> {
+    return $Call.ByID(2473688529);
+}
+
+/**
+ * GetVersion returns the current app version.
+ */
 export function GetVersion(): $CancellablePromise<string> {
     return $Call.ByID(2729898890);
 }
@@ -111,6 +168,14 @@ export function GoogleAuthBusy(): $CancellablePromise<boolean> {
  */
 export function GoogleDriveStatus(): $CancellablePromise<gdrive$0.Status> {
     return $Call.ByID(3045286533);
+}
+
+/**
+ * HarvestSteamAccounts re-reads Steam's local session files (ConnectCache +
+ * loginusers.vdf) and merges found accounts into the store.
+ */
+export function HarvestSteamAccounts(): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3028871153);
 }
 
 /**
@@ -141,14 +206,23 @@ export function InstallUpdate(downloadURL: string): $CancellablePromise<$models.
     return $Call.ByID(3729456840, downloadURL);
 }
 
+/**
+ * ListAccounts returns all stored accounts with validity, expiry and cached avatar.
+ */
 export function ListAccounts(): $CancellablePromise<$models.AccountDTO[] | null> {
     return $Call.ByID(1560646494);
 }
 
+/**
+ * LoginFromKey validates a pasted login----token key and logs into Steam with it.
+ */
 export function LoginFromKey(accountKey: string, keepExisting: boolean): $CancellablePromise<$models.Result> {
     return $Call.ByID(1019931498, accountKey, keepExisting);
 }
 
+/**
+ * LoginSaved logs into Steam using a token already stored under account.
+ */
 export function LoginSaved(account: string, keepExisting: boolean): $CancellablePromise<$models.Result> {
     return $Call.ByID(2905720970, account, keepExisting);
 }
@@ -174,8 +248,26 @@ export function OpenURL(url: string): $CancellablePromise<void> {
     return $Call.ByID(790318107, url);
 }
 
+/**
+ * PickTextFile opens a file dialog and returns the file's text content
+ * (used by the bulk checker to load a .txt with keys).
+ */
+export function PickTextFile(): $CancellablePromise<string> {
+    return $Call.ByID(766813466);
+}
+
+/**
+ * ResetSteam asks for confirmation, then wipes Steam config/userdata and relaunches it.
+ */
 export function ResetSteam(): $CancellablePromise<$models.Result> {
     return $Call.ByID(2909845851);
+}
+
+/**
+ * SaveAccountKey validates and stores a pasted key without logging into Steam.
+ */
+export function SaveAccountKey(accountKey: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(944295897, accountKey);
 }
 
 /**
@@ -185,10 +277,16 @@ export function SaveGoogleCredentials(clientID: string, clientSecret: string): $
     return $Call.ByID(3910052830, clientID, clientSecret);
 }
 
+/**
+ * WindowClose cancels pending auth, closes the guide window and quits the app.
+ */
 export function WindowClose(): $CancellablePromise<void> {
     return $Call.ByID(233884162);
 }
 
+/**
+ * WindowMinimise minimises the current window.
+ */
 export function WindowMinimise(): $CancellablePromise<void> {
     return $Call.ByID(1381835851);
 }

@@ -18,16 +18,76 @@ type Info struct {
 	Raw         string
 }
 
-func ParseAndValidate(raw string) (*Info, error) {
+// DecodeClaims normalizes the raw token and returns its JWT payload claims
+// without validating them (validation lives in ParseAndValidate).
+func DecodeClaims(raw string) (map[string]any, error) {
+	raw = normalize(raw)
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid token format")
+	}
+	payload, err := decodeSegment(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid token payload: %w", err)
+	}
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("token json: %w", err)
+	}
+	return claims, nil
+}
+
+func normalize(raw string) string {
 	raw = strings.TrimSpace(raw)
 	raw = strings.ReplaceAll(raw, " ", "")
 	raw = strings.ReplaceAll(raw, "\n", "")
 	raw = strings.ReplaceAll(raw, "\r", "")
-	// Normalize capitalized header variant from some sellers
 	raw = strings.ReplaceAll(raw,
 		"EyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0",
 		"eyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0",
 	)
+	return raw
+}
+
+// ClaimTime extracts a unix-seconds claim as time.Time.
+func ClaimTime(claims map[string]any, key string) (time.Time, bool) {
+	var sec int64
+	switch v := claims[key].(type) {
+	case float64:
+		sec = int64(v)
+	case json.Number:
+		sec, _ = v.Int64()
+	case string:
+		sec, _ = strconv.ParseInt(v, 10, 64)
+	}
+	if sec == 0 {
+		return time.Time{}, false
+	}
+	return time.Unix(sec, 0).UTC(), true
+}
+
+// ClaimStrings extracts a string or []string claim.
+func ClaimStrings(claims map[string]any, key string) []string {
+	switch v := claims[key].(type) {
+	case string:
+		if v != "" {
+			return []string{v}
+		}
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, a := range v {
+			if s, ok := a.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// ParseAndValidate validates a Steam refresh token and returns its metadata.
+func ParseAndValidate(raw string) (*Info, error) {
+	raw = normalize(raw)
 
 	parts := strings.Split(raw, ".")
 	if len(parts) != 3 {
@@ -95,19 +155,16 @@ func ParseAccountKey(input string) (account string, token string, err error) {
 	if input == "" {
 		return "", "", fmt.Errorf("empty input")
 	}
-	// bulk paste: take first non-empty line only for single-login path
 	if i := strings.IndexAny(input, "\r\n"); i >= 0 {
 		input = strings.TrimSpace(input[:i])
 	}
 
-	// Common marketplace format: user----pass----token or user----token
 	if strings.Contains(input, "----") {
 		parts := strings.Split(input, "----")
 		account = strings.ToLower(strings.TrimSpace(parts[0]))
 		if i := strings.Index(account, "@"); i >= 0 {
 			account = account[:i]
 		}
-		// Prefer the last JWT-looking segment (token is usually last)
 		for i := len(parts) - 1; i >= 0; i-- {
 			p := strings.TrimSpace(parts[i])
 			if looksLikeJWT(p) {
@@ -149,7 +206,6 @@ func ParseBulkKeys(input string) ([]ParsedKey, []string) {
 		}
 		key := strings.ToLower(acc)
 		if seen[key] {
-			// last wins — replace previous
 			for i := range out {
 				if strings.EqualFold(out[i].Account, acc) {
 					out[i].Token = tok
@@ -215,15 +271,12 @@ func anyToString(v any) string {
 
 func decodeSegment(seg string) ([]byte, error) {
 	seg = strings.TrimSpace(seg)
-	// try raw URL first (no padding)
 	if b, err := base64.RawURLEncoding.DecodeString(seg); err == nil {
 		return b, nil
 	}
-	// padded URL
 	if b, err := base64.URLEncoding.DecodeString(padB64(seg)); err == nil {
 		return b, nil
 	}
-	// standard
 	return base64.StdEncoding.DecodeString(padB64(seg))
 }
 

@@ -1,5 +1,7 @@
+/** Lang is a supported UI language. */
 export type Lang = 'en' | 'ru';
 
+/** Dict is the full set of translatable UI strings for one language. */
 export type Dict = {
   resetSteam: string;
   showInstructions: string;
@@ -31,21 +33,21 @@ export type Dict = {
   lang: string;
   expiredInvalid: string;
   unknown: string;
-  // backend / status message maps
   accountDeleted: string;
   cancelled: string;
   steamReset: string;
   accountNotFound: string;
   accountNameRequired: string;
-  loggedInAs: string; // {name}
-  loggedInToken: string; // {name} {until}
-  validUntil: string; // {until}
+  loggedInAs: string;
+  loggedInToken: string;
+  validUntil: string;
   successTitle: string;
   errorTitle: string;
+  creditPrefix: string;
   steamNotDetected: string;
   checkUpdate: string;
   updateTitle: string;
-  updateAvailable: string; // {current} {latest}
+  updateAvailable: string;
   updateNone: string;
   updateNow: string;
   updateLater: string;
@@ -111,7 +113,7 @@ export type Dict = {
   driveGuideNext: string;
   driveGuideBack: string;
   driveGuideDone: string;
-  driveGuideStepOf: string; // {n} {total}
+  driveGuideStepOf: string;
   driveGuideT1: string;
   driveGuideT2: string;
   driveGuideT3: string;
@@ -125,7 +127,139 @@ export type Dict = {
   settingsApp: string;
   settingsDrive: string;
   settingsLang: string;
+  settingsTheme: string;
+  themeAuto: string;
+  themeDark: string;
+  themeLight: string;
   help6: string;
+  modeSimple: string;
+  modeAdvanced: string;
+  helpHint: string;
+  hintConfirmTitle: string;
+  hintConfirmText: string;
+  hintConfirmYes: string;
+  hintConfirmNo: string;
+  info: string;
+  accInfoTitle: string;
+  accInfoLoading: string;
+  accInfoOpenProfile: string;
+  rowStatus: string;
+  rowVisibility: string;
+  rowVac: string;
+  rowTrade: string;
+  rowLimited: string;
+  rowSince: string;
+  rowToken: string;
+  visPublic: string;
+  visPrivate: string;
+  visFriends: string;
+  stOnline: string;
+  stOffline: string;
+  stInGame: string;
+  yes: string;
+  no: string;
+  modeLogs: string;
+  sysPanel: string;
+  logPanel: string;
+  logClear: string;
+  logEmpty: string;
+  logRefresh: string;
+  sysVersion: string;
+  sysRunning: string;
+  sysStopped: string;
+  sysPath: string;
+  sysAccounts: string;
+  apiOk: string;
+  apiDown: string;
+  keyCheckLabel: string;
+  keyCheckBtn: string;
+  keyCheckDone: string;
+  rowRealName: string;
+  rowLocation: string;
+  rowInGame: string;
+  rowLevel: string;
+  rowGames: string;
+  rowFriends: string;
+  rowTopGame: string;
+  rowWallet: string;
+  rowCountry: string;
+  rowBanInfo: string;
+  daysShort: string;
+  rowCS2Items: string;
+  rowCS2Hours: string;
+  rowPrime: string;
+  rowLicenses: string;
+  saveBtn: string;
+  savedAs: string;
+  rowCS2Medals: string;
+  rowInvValue: string;
+  invPartial: string;
+  bulkCheckBtn: string;
+  bulkTitle: string;
+  bulkKeysLabel: string;
+  bulkProxyLabel: string;
+  bulkStart: string;
+  bulkSaved: string;
+  bstOk: string;
+  bstRejected: string;
+  bstExpired: string;
+  bstInvalid: string;
+  bstError: string;
+  bulkProgress: string;
+  bulkExportOk: string;
+  bulkExportBad: string;
+  bulkExportEmpty: string;
+  bulkFileCreated: string;
+  stageFindSteam: string;
+  stageStopSteam: string;
+  stageLoginUsers: string;
+  stageConnectCache: string;
+  stageConfig: string;
+  stageRegistry: string;
+  stageAcl: string;
+  stageLaunch: string;
+  stageWaitWindow: string;
+  settingsProxy: string;
+  proxyHint: string;
+  bulkProxyGo: string;
+  bulkOpenSettings: string;
+  bulkFile: string;
+  harvestBtn: string;
+  tokSection: string;
+  rowTokSteamID: string;
+  rowTokIssued: string;
+  rowTokExpires: string;
+  rowTokAud: string;
+  rowTokAccessExp: string;
+  rowTokClaims: string;
+  checksTitle: string;
+  chkJwtStructure: string;
+  chkSignature: string;
+  chkIssuer: string;
+  chkAudience: string;
+  chkSteamIDFormat: string;
+  chkNotExpired: string;
+  chkIatPast: string;
+  chkIatBeforeExp: string;
+  chkNbfOk: string;
+  chkRtExpOk: string;
+  chkAccessMinted: string;
+  chkAccessSubMatch: string;
+  chkAccessExpOk: string;
+  chkProfileMatch: string;
+  dJwtStructure: string;
+  dSignature: string;
+  dIssuer: string;
+  dAudience: string;
+  dSteamIDFormat: string;
+  dNotExpired: string;
+  dIatPast: string;
+  dIatBeforeExp: string;
+  dNbfOk: string;
+  dRtExpOk: string;
+  dProfileMatch: string;
+  dAccessMinted: string;
+  alphaWarn: string;
 };
 
 const en: Dict = {
@@ -169,6 +303,7 @@ const en: Dict = {
   validUntil: 'valid until {until}',
   successTitle: 'Success',
   errorTitle: 'Error',
+  creditPrefix: 'Created with support of',
   steamNotDetected: 'Steam did not start. Check the tray or Task Manager.',
   checkUpdate: 'Check update',
   updateTitle: 'Update available',
@@ -252,7 +387,139 @@ const en: Dict = {
   settingsApp: 'Application',
   settingsDrive: 'Google Drive',
   settingsLang: 'Interface language',
+  settingsTheme: 'Theme',
+  themeAuto: 'Auto',
+  themeDark: 'Dark',
+  themeLight: 'Light',
   help6: 'Google Drive: Settings → configure once, then choose Drive when exporting',
+  modeSimple: 'Simple',
+  modeAdvanced: 'Advanced',
+  helpHint: 'INSTRUCTIONS HERE',
+  hintConfirmTitle: 'Hide the hint?',
+  hintConfirmText: 'Really close this hint? It will not appear again. The instructions are always available via the "?" button.',
+  hintConfirmYes: 'Yes, hide it',
+  hintConfirmNo: 'Keep it',
+  info: 'Info',
+  accInfoTitle: 'Account info',
+  accInfoLoading: 'Fetching account data…',
+  accInfoOpenProfile: 'Open Steam profile',
+  rowStatus: 'Status',
+  rowVisibility: 'Profile',
+  rowVac: 'VAC ban',
+  rowTrade: 'Trade ban',
+  rowLimited: 'Limited',
+  rowSince: 'Registered',
+  rowToken: 'Token accepted by Steam',
+  visPublic: 'public',
+  visPrivate: 'private',
+  visFriends: 'friends only',
+  stOnline: 'online',
+  stOffline: 'offline',
+  stInGame: 'in-game',
+  yes: 'Yes',
+  no: 'No',
+  modeLogs: 'Checker',
+  sysPanel: 'Status & checks',
+  logPanel: 'Log',
+  logClear: 'Clear',
+  logEmpty: 'No entries yet',
+  logRefresh: 'Refresh status',
+  sysVersion: 'Version',
+  sysRunning: 'running',
+  sysStopped: 'not running',
+  sysPath: 'Steam path',
+  sysAccounts: 'Accounts (valid/total)',
+  apiOk: 'reachable',
+  apiDown: 'unreachable',
+  keyCheckLabel: 'Key check',
+  keyCheckBtn: 'Check',
+  keyCheckDone: 'Key check finished',
+  rowRealName: 'Real name',
+  rowLocation: 'Location',
+  rowInGame: 'Playing',
+  rowLevel: 'Level',
+  rowGames: 'Games',
+  rowFriends: 'Friends',
+  rowTopGame: 'Top game',
+  rowWallet: 'Wallet',
+  rowCountry: 'Country',
+  rowBanInfo: 'Ban details',
+  daysShort: 'd.',
+  rowCS2Items: 'CS2 items',
+  rowCS2Hours: 'CS2 hours',
+  rowPrime: 'Prime status',
+  rowLicenses: 'Licenses',
+  saveBtn: 'Save',
+  savedAs: 'Saved: {name} · token valid until {until}',
+  rowCS2Medals: 'Medals',
+  rowInvValue: 'Inventory value',
+  invPartial: '(partial)',
+  bulkCheckBtn: 'Bulk check',
+  bulkTitle: 'Bulk account check',
+  bulkKeysLabel: 'Keys — login----token, one per line',
+  bulkProxyLabel: 'Proxies (optional, one per line: http/socks5, user:pass@host:port)',
+  bulkStart: 'Check pasted keys',
+  bulkSaved: 'Check saved accounts',
+  bstOk: 'can log in',
+  bstRejected: 'token rejected by Steam',
+  bstExpired: 'expired',
+  bstInvalid: 'invalid',
+  bstError: 'check error',
+  bulkProgress: 'Checked {done} of {total}…',
+  bulkExportOk: 'Export working',
+  bulkExportBad: 'Export failed',
+  bulkExportEmpty: 'Nothing to export',
+  bulkFileCreated: 'File created',
+  stageFindSteam: 'Locating Steam…',
+  stageStopSteam: 'Stopping Steam…',
+  stageLoginUsers: 'Updating loginusers.vdf…',
+  stageConnectCache: 'Writing session token…',
+  stageConfig: 'Updating config.vdf…',
+  stageRegistry: 'Setting auto-login…',
+  stageAcl: 'Fixing file permissions…',
+  stageLaunch: 'Launching Steam…',
+  stageWaitWindow: 'Waiting for the Steam window…',
+  settingsProxy: 'Proxies',
+  proxyHint: 'One per line: http/socks5, user:pass@host:port. Used by the bulk checker.',
+  bulkProxyGo: 'Proxies are configured in Settings',
+  bulkOpenSettings: 'Open settings',
+  bulkFile: 'Load .txt…',
+  harvestBtn: 'Pull accounts from Steam files',
+  tokSection: 'Token',
+  rowTokSteamID: 'SteamID from token',
+  rowTokIssued: 'Issued',
+  rowTokExpires: 'Expires',
+  rowTokAud: 'Audiences',
+  rowTokAccessExp: 'Access token until',
+  rowTokClaims: 'Raw JWT claims',
+  checksTitle: 'Token checks',
+  chkJwtStructure: 'JWT structure (3 segments)',
+  chkSignature: 'Signature segment present',
+  chkIssuer: 'Issuer is Steam',
+  chkAudience: 'Audience allows client',
+  chkSteamIDFormat: 'SteamID64 format',
+  chkNotExpired: 'Not expired',
+  chkIatPast: 'Issued in the past',
+  chkIatBeforeExp: 'Issued before expiry',
+  chkNbfOk: 'Not-before (nbf) valid',
+  chkRtExpOk: 'Refresh window (rt_exp) valid',
+  chkAccessMinted: 'Steam accepted the token (live sign-in)',
+  chkAccessSubMatch: 'Access token SteamID matches',
+  chkAccessExpOk: 'Access token not expired',
+  chkProfileMatch: 'Profile matches token SteamID',
+  dJwtStructure: 'The token has the correct shape — three parts separated by dots. If not, it is just a broken piece of text.',
+  dSignature: 'The token has its security seal. Without it, Steam treats it as fake.',
+  dIssuer: 'The token was really made by Steam, not copied or generated elsewhere.',
+  dAudience: 'The token is allowed to log into the Steam app. Without this, login is impossible.',
+  dSteamIDFormat: 'The token correctly names which account it belongs to (SteamID).',
+  dNotExpired: 'The token has not expired yet.',
+  dIatPast: 'The token was created in the past, as it should be. “From the future” would mean a fake.',
+  dIatBeforeExp: 'The creation date is earlier than the expiry date. If reversed, the token was tampered with.',
+  dNbfOk: 'If the token says “not valid before a date”, that date has already come.',
+  dRtExpOk: 'The token can still be renewed — its refresh window has not closed.',
+  dProfileMatch: 'The account inside the token matches the public Steam profile. Mismatch = the token belongs to a different account.',
+  dAccessMinted: 'Steam actually accepted the token: we signed in to the Steam network with it (harmlessly — the token is not spent). If this fails, the token is revoked and login is impossible.',
+  alphaWarn: 'ALPHA: the live checker signs in to the Steam network (CM). Check results may be unstable. Re-verification of rejected accounts is recommended before deletion.',
 };
 
 const ru: Dict = {
@@ -296,6 +563,7 @@ const ru: Dict = {
   validUntil: 'действителен до {until}',
   successTitle: 'Успешно',
   errorTitle: 'Ошибка',
+  creditPrefix: 'Создано при поддержке',
   steamNotDetected: 'Steam не запустился. Проверьте область уведомлений или Диспетчер задач.',
   checkUpdate: 'Обновления',
   updateTitle: 'Доступно обновление',
@@ -379,13 +647,146 @@ const ru: Dict = {
   settingsApp: 'Приложение',
   settingsDrive: 'Google Drive',
   settingsLang: 'Язык интерфейса',
+  settingsTheme: 'Тема',
+  themeAuto: 'Авто',
+  themeDark: 'Тёмная',
+  themeLight: 'Светлая',
   help6: 'Google Drive: Настройки → настройте один раз, затем выбирайте Drive при экспорте',
+  modeSimple: 'Простой',
+  modeAdvanced: 'Расширенный',
+  helpHint: 'ТУТ ИНСТРУКЦИЯ',
+  hintConfirmTitle: 'Скрыть подсказку?',
+  hintConfirmText: 'Точно закрыть подсказку? Она больше не появится. Инструкция всегда доступна по кнопке «?».',
+  hintConfirmYes: 'Да, скрыть',
+  hintConfirmNo: 'Оставить',
+  info: 'Инфо',
+  accInfoTitle: 'Информация об аккаунте',
+  accInfoLoading: 'Получаем данные аккаунта…',
+  accInfoOpenProfile: 'Открыть профиль Steam',
+  rowStatus: 'Статус',
+  rowVisibility: 'Профиль',
+  rowVac: 'VAC-бан',
+  rowTrade: 'Трейд-бан',
+  rowLimited: 'Лимит',
+  rowSince: 'Регистрация',
+  rowToken: 'Токен принят Steam',
+  visPublic: 'открытый',
+  visPrivate: 'закрытый',
+  visFriends: 'только друзья',
+  stOnline: 'в сети',
+  stOffline: 'не в сети',
+  stInGame: 'в игре',
+  yes: 'Да',
+  no: 'Нет',
+  modeLogs: 'Чекер',
+  sysPanel: 'Статус и проверки',
+  logPanel: 'Журнал',
+  logClear: 'Очистить',
+  logEmpty: 'Записей пока нет',
+  logRefresh: 'Обновить статус',
+  sysVersion: 'Версия',
+  sysRunning: 'запущен',
+  sysStopped: 'не запущен',
+  sysPath: 'Путь Steam',
+  sysAccounts: 'Аккаунты (валидные/всего)',
+  apiOk: 'доступен',
+  apiDown: 'недоступен',
+  keyCheckLabel: 'Проверка ключа',
+  keyCheckBtn: 'Проверить',
+  keyCheckDone: 'Проверка ключа выполнена',
+  rowRealName: 'Имя',
+  rowLocation: 'Локация',
+  rowInGame: 'Играет в',
+  rowLevel: 'Уровень',
+  rowGames: 'Игр',
+  rowFriends: 'Друзей',
+  rowTopGame: 'Топ-игра',
+  rowWallet: 'Кошелёк',
+  rowCountry: 'Страна',
+  rowBanInfo: 'Детали банов',
+  daysShort: 'дн.',
+  rowCS2Items: 'Предметы CS2',
+  rowCS2Hours: 'Часы в CS2',
+  rowPrime: 'Prime-статус',
+  rowLicenses: 'Лицензий',
+  saveBtn: 'Сохранить',
+  savedAs: 'Сохранено: {name} · токен действителен до {until}',
+  rowCS2Medals: 'Медали',
+  rowInvValue: 'Цена инвентаря',
+  invPartial: '(не все)',
+  bulkCheckBtn: 'Масс. проверка',
+  bulkTitle: 'Массовая проверка аккаунтов',
+  bulkKeysLabel: 'Ключи — login----token, по одному на строку',
+  bulkProxyLabel: 'Прокси (необязательно, по одному на строку: http/socks5, user:pass@host:port)',
+  bulkStart: 'Проверить вставленные',
+  bulkSaved: 'Проверить сохранённые',
+  bstOk: 'вход возможен',
+  bstRejected: 'токен отклонён Steam',
+  bstExpired: 'истёк',
+  bstInvalid: 'невалиден',
+  bstError: 'ошибка проверки',
+  bulkProgress: 'Проверено {done} из {total}…',
+  bulkExportOk: 'Экспорт рабочих',
+  bulkExportBad: 'Экспорт нерабочих',
+  bulkExportEmpty: 'Нечего экспортировать',
+  bulkFileCreated: 'Файл создан',
+  stageFindSteam: 'Поиск Steam…',
+  stageStopSteam: 'Остановка Steam…',
+  stageLoginUsers: 'Обновление loginusers.vdf…',
+  stageConnectCache: 'Запись токена сессии…',
+  stageConfig: 'Обновление config.vdf…',
+  stageRegistry: 'Настройка автологина…',
+  stageAcl: 'Настройка прав доступа…',
+  stageLaunch: 'Запуск Steam…',
+  stageWaitWindow: 'Ожидание окна Steam…',
+  settingsProxy: 'Прокси',
+  proxyHint: 'По одному на строку: http/socks5, user:pass@host:port. Используются массовой проверкой.',
+  bulkProxyGo: 'Прокси задаются в настройках',
+  bulkOpenSettings: 'Открыть настройки',
+  bulkFile: 'Загрузить .txt…',
+  harvestBtn: 'Забрать аккаунты из файлов Steam',
+  tokSection: 'Токен',
+  rowTokSteamID: 'SteamID из токена',
+  rowTokIssued: 'Выдан',
+  rowTokExpires: 'Истекает',
+  rowTokAud: 'Audience',
+  rowTokAccessExp: 'Access-токен до',
+  rowTokClaims: 'Сырые JWT claims',
+  checksTitle: 'Проверки токена',
+  chkJwtStructure: 'Структура JWT (3 сегмента)',
+  chkSignature: 'Сегмент подписи на месте',
+  chkIssuer: 'Issuer — Steam',
+  chkAudience: 'Audience допускает client',
+  chkSteamIDFormat: 'Формат SteamID64',
+  chkNotExpired: 'Не истёк',
+  chkIatPast: 'Выдан в прошлом',
+  chkIatBeforeExp: 'Выдан раньше истечения',
+  chkNbfOk: 'Not-before (nbf) корректен',
+  chkRtExpOk: 'Окно refresh (rt_exp) действует',
+  chkAccessMinted: 'Steam принял токен (живой вход)',
+  chkAccessSubMatch: 'SteamID access-токена совпадает',
+  chkAccessExpOk: 'Access-токен не истёк',
+  chkProfileMatch: 'Профиль совпадает со SteamID токена',
+  dJwtStructure: 'Токен имеет правильную форму — три части через точки. Если нет, это просто битый кусок текста.',
+  dSignature: 'У токена есть защитная печать. Без неё Steam считает его подделкой.',
+  dIssuer: 'Токен действительно сделан Steam, а не скопирован или сгенерирован где-то ещё.',
+  dAudience: 'Токену разрешено входить в приложение Steam. Без этого вход невозможен.',
+  dSteamIDFormat: 'В токене правильно указано, к какому аккаунту он относится (SteamID).',
+  dNotExpired: 'Срок действия токена ещё не вышел.',
+  dIatPast: 'Токен создан в прошлом, как и положено. «Из будущего» — значит подделка.',
+  dIatBeforeExp: 'Дата создания раньше даты окончания. Если наоборот — токен подправили.',
+  dNbfOk: 'Если в токене написано «действует с такой-то даты» — эта дата уже наступила.',
+  dRtExpOk: 'Токен ещё можно продлить — его окно обновления не закрылось.',
+  dProfileMatch: 'Аккаунт внутри токена совпадает с публичным профилем Steam. Не совпадает — токен от другого аккаунта.',
+  dAccessMinted: 'Steam реально принял токен: мы вошли с ним в сеть Steam (безопасно — токен при этом не тратится). Если тут крестик — токен отозван и войти нельзя.',
+  alphaWarn: 'ALPHA: живой чекер выполняет вход в сеть Steam (CM). Результаты проверки могут быть нестабильными. Перед удалением отклонённых аккаунтов рекомендуется выполнить повторную проверку.',
 };
 
 const catalogs: Record<Lang, Dict> = { en, ru };
 
 const STORAGE_KEY = 'nfa-tool-lang';
 
+/** detectSystemLang picks 'ru' when the browser prefers Russian, else 'en'. */
 export function detectSystemLang(): Lang {
   const list = [
     ...(typeof navigator !== 'undefined' ? navigator.languages ?? [] : []),
@@ -400,24 +801,25 @@ export function detectSystemLang(): Lang {
   return 'en';
 }
 
+/** loadLang reads the saved language, defaulting to the system language. */
 export function loadLang(): Lang {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'en' || saved === 'ru') return saved;
   } catch {
-    /* ignore */
   }
   return detectSystemLang();
 }
 
+/** saveLang persists the language preference. */
 export function saveLang(lang: Lang) {
   try {
     localStorage.setItem(STORAGE_KEY, lang);
   } catch {
-    /* ignore */
   }
 }
 
+/** t translates a dictionary key, substituting {var} placeholders. */
 export function t(lang: Lang, key: keyof Dict, vars?: Record<string, string | number>): string {
   let s = catalogs[lang][key] ?? catalogs.en[key] ?? String(key);
   if (vars) {
@@ -470,8 +872,20 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
     return lang === 'ru' ? 'Google Drive отключён' : 'Google Drive disconnected';
   }
   if (m.startsWith('account name required')) return t(lang, 'accountNameRequired');
+
+  let saveRe = /^Saved as (.+?) · token valid until (.+)$/;
+  const saveMatch = m.match(saveRe);
+  if (saveMatch) return t(lang, 'savedAs', { name: saveMatch[1], until: saveMatch[2] });
   if (m.startsWith('Exported ')) {
     return m.replace(/^Exported /, lang === 'ru' ? 'Экспортировано: ' : 'Exported ');
+  }
+  if (m.startsWith('Harvested ')) {
+    const n = m.match(/Harvested (\d+)/)?.[1] ?? '';
+    if (!n) return m;
+    return lang === 'ru' ? `Найдено аккаунтов в файлах Steam: ${n}` : m;
+  }
+  if (m === 'no accounts found in Steam files') {
+    return lang === 'ru' ? 'В файлах Steam аккаунты не найдены' : 'No accounts found in Steam files';
   }
   if (m.startsWith('Uploaded ')) {
     return m.replace(/^Uploaded /, lang === 'ru' ? 'Загружено: ' : 'Uploaded ');
@@ -480,7 +894,6 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   const steamWarn = m.includes('warning: steam.exe not detected after launch');
   const core = m.replace(/\s*·\s*warning: steam\.exe not detected after launch\s*/i, '').trim();
 
-  // Logged in as NAME · token valid until DATE
   let re = /^Logged in as (.+?) · token valid until (.+)$/;
   let match = core.match(re);
   if (match) {
@@ -489,7 +902,6 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
     return out;
   }
 
-  // older duration form
   re = /^Logged in as (.+?) · token valid (.+)$/;
   match = m.match(re);
   if (match) return t(lang, 'loggedInToken', { name: match[1], until: match[2] });
@@ -502,7 +914,6 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
     return out;
   }
 
-  // common token errors stay readable; light-touch RU hints
   if (lang === 'ru') {
     if (m === 'token expired') return 'Срок действия токена истёк';
     if (m === 'invalid token format') return 'Неверный формат токена';
@@ -525,10 +936,10 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   return m;
 }
 
+/** localizeExpiry renders a backend expiry string in the UI language. */
 export function localizeExpiry(lang: Lang, exp: string): string {
   if (exp === 'expired/invalid') return t(lang, 'expiredInvalid');
   if (exp === 'unknown') return t(lang, 'unknown');
-  // Backend sends absolute date: "2026-09-15 14:30 UTC"
   if (/^\d{4}-\d{2}-\d{2}/.test(exp)) {
     return t(lang, 'validUntil', { until: exp });
   }

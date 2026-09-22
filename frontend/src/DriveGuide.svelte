@@ -169,23 +169,77 @@
   :global(:root) {
     --bg: #09090b;
     --text: #fafafa;
-    --muted: #71717a;
+    --muted: #8b8b94;
     --accent: #ffffff;
+    --accent-hover: #f4f4f5;
+    --accent-fg: #09090b;
     --accent-strong: #ffffff;
     --cyan: #e4e4e7;
     --warn: #fbbf24;
+    --warn-text: #fde68a;
     --card: #141416;
+    --card-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
     --border: rgba(255, 255, 255, 0.08);
+    --chip-bg: rgba(255, 255, 255, 0.04);
+    --chip-border: rgba(255, 255, 255, 0.08);
+    --pip: rgba(255, 255, 255, 0.12);
+    --pip-done: rgba(255, 255, 255, 0.35);
+    --link-bg: rgba(255, 255, 255, 0.08);
+    --link-border: rgba(255, 255, 255, 0.22);
+    --link-bg-hover: rgba(255, 255, 255, 0.14);
+    --link-border-hover: rgba(255, 255, 255, 0.4);
+    --ghost-bg: rgba(255, 255, 255, 0.04);
+    --ghost-border: rgba(255, 255, 255, 0.1);
+    --ghost-bg-hover: rgba(255, 255, 255, 0.07);
+    --ghost-border-hover: rgba(255, 255, 255, 0.28);
+    --dot-ring: rgba(255, 255, 255, 0.1);
     --radius: 14px;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
     font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
     color-scheme: dark;
   }
 
+  :global(:root[data-theme='light']) {
+    --bg: #f4f4f5;
+    --text: #18181b;
+    --muted: #61616b;
+    --accent: #18181b;
+    --accent-hover: #27272a;
+    --accent-fg: #fafafa;
+    --accent-strong: #18181b;
+    --cyan: #3f3f46;
+    --warn: #b45309;
+    --warn-text: #92400e;
+    --card: #ffffff;
+    --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    --border: rgba(0, 0, 0, 0.09);
+    --chip-bg: rgba(0, 0, 0, 0.04);
+    --chip-border: rgba(0, 0, 0, 0.08);
+    --pip: rgba(0, 0, 0, 0.12);
+    --pip-done: rgba(0, 0, 0, 0.3);
+    --link-bg: rgba(0, 0, 0, 0.05);
+    --link-border: rgba(0, 0, 0, 0.2);
+    --link-bg-hover: rgba(0, 0, 0, 0.09);
+    --link-border-hover: rgba(0, 0, 0, 0.35);
+    --ghost-bg: rgba(0, 0, 0, 0.03);
+    --ghost-border: rgba(0, 0, 0, 0.12);
+    --ghost-bg-hover: rgba(0, 0, 0, 0.06);
+    --ghost-border-hover: rgba(0, 0, 0, 0.28);
+    --dot-ring: rgba(0, 0, 0, 0.1);
+    color-scheme: light;
+  }
+
   :global(*) {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    scrollbar-width: none;
+  }
+
+  :global(::-webkit-scrollbar) {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   :global(html),
@@ -240,8 +294,8 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--dot-ring);
   }
 
   .bar-right {
@@ -253,8 +307,8 @@
 
   .lang-switch {
     display: inline-flex;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
     border-radius: 10px;
     overflow: hidden;
   }
@@ -274,8 +328,8 @@
   }
 
   .lang-btn.active {
-    background: #ffffff;
-    color: #09090b;
+    background: var(--accent);
+    color: var(--accent-fg);
   }
 
   .x {
@@ -306,7 +360,7 @@
     height: 6px;
     border: none;
     border-radius: 99px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--pip);
     cursor: pointer;
     padding: 0;
     transition: width 0.28s var(--ease), background 0.28s var(--ease), transform 0.2s var(--ease);
@@ -317,11 +371,11 @@
   }
 
   .pip.done {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--pip-done);
   }
 
   .pip.on {
-    background: #ffffff;
+    background: var(--accent);
     width: 42px;
   }
 
@@ -338,7 +392,7 @@
     border-radius: var(--radius);
     background: var(--card);
     border: 1px solid var(--border);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--card-shadow);
     overflow: auto;
     min-height: 0;
     --wails-draggable: no-drag;
@@ -378,7 +432,7 @@
   }
 
   .text.warn {
-    color: #fde68a;
+    color: var(--warn-text);
   }
 
   .callout {
@@ -387,7 +441,7 @@
     border-radius: 12px;
     background: rgba(251, 191, 36, 0.12);
     border: 1px solid rgba(251, 191, 36, 0.28);
-    color: #fde68a;
+    color: var(--warn-text);
     font-size: 13.5px;
     line-height: 1.45;
   }
@@ -406,9 +460,9 @@
   }
 
   .link-btn {
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
+    border: 1px solid var(--link-border);
+    background: var(--link-bg);
+    color: var(--text);
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 13px;
@@ -418,8 +472,8 @@
   }
 
   .link-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--link-bg-hover);
+    border-color: var(--link-border-hover);
   }
 
   .link-btn:active {
@@ -437,8 +491,8 @@
     flex: 1;
     height: 46px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--ghost-border);
+    background: var(--ghost-bg);
     color: var(--text);
     font-weight: 650;
     cursor: pointer;
@@ -451,8 +505,8 @@
   }
 
   .ghost:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--ghost-border-hover);
+    background: var(--ghost-bg-hover);
   }
 
   .ghost:active:not(:disabled),
@@ -465,8 +519,8 @@
     height: 46px;
     border: none;
     border-radius: 12px;
-    background: #ffffff;
-    color: #09090b;
+    background: var(--accent);
+    color: var(--accent-fg);
     font-weight: 750;
     font-size: 15px;
     cursor: pointer;
@@ -474,6 +528,6 @@
   }
 
   .primary:hover {
-    background: #f4f4f5;
+    background: var(--accent-hover);
   }
 </style>

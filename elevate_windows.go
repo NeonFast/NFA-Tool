@@ -11,8 +11,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// ensureAdmin exits the current process after launching an elevated copy when needed.
-// Production builds also request admin via the exe manifest (UAC).
 func ensureAdmin() {
 	if isAdmin() {
 		return
@@ -21,14 +19,12 @@ func ensureAdmin() {
 	if err != nil {
 		os.Exit(1)
 	}
-	// Re-launch elevated
 	verb, _ := syscall.UTF16PtrFromString("runas")
 	file, _ := syscall.UTF16PtrFromString(exe)
-	// preserve args (skip argv0)
 	args := strings.Join(os.Args[1:], " ")
 	param, _ := syscall.UTF16PtrFromString(args)
 	dir, _ := syscall.UTF16PtrFromString("")
-	var show int32 = 1 // SW_SHOWNORMAL
+	var show int32 = 1
 
 	ret, _, _ := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteW").Call(
 		0,
@@ -38,7 +34,6 @@ func ensureAdmin() {
 		uintptr(unsafe.Pointer(dir)),
 		uintptr(show),
 	)
-	// ShellExecute returns >32 on success
 	if ret <= 32 {
 		os.Exit(1)
 	}
@@ -47,7 +42,6 @@ func ensureAdmin() {
 
 func isAdmin() bool {
 	var sid *windows.SID
-	// BUILTIN\Administrators
 	err := windows.AllocateAndInitializeSid(
 		&windows.SECURITY_NT_AUTHORITY,
 		2,

@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// GitHub release coordinates and HTTP identity used by the updater.
 const (
 	GitHubOwner = "NeonFast"
 	GitHubRepo  = "NFA-Tool"
@@ -114,7 +115,6 @@ func pickExeAsset(rel ghRelease) string {
 func normalizeVer(v string) string {
 	v = strings.TrimSpace(v)
 	v = strings.TrimPrefix(strings.ToLower(v), "v")
-	// strip pre-release suffix for compare base: 2.0.0-beta -> 2.0.0 (still compared simply)
 	if i := strings.IndexAny(v, "-+"); i >= 0 {
 		v = v[:i]
 	}
@@ -205,9 +205,6 @@ func ApplyDownload(exeURL string) error {
 	}
 	f.Close()
 
-	// batch: wait for this pid to exit, replace exe, start new.
-	// Self-delete is deferred to a child cmd so this script does not error with
-	// "The batch file cannot be found" after deleting itself mid-run.
 	pid := os.Getpid()
 	script := fmt.Sprintf("@echo off\r\n"+
 		"setlocal EnableExtensions\r\n"+
@@ -233,12 +230,11 @@ func ApplyDownload(exeURL string) error {
 		return err
 	}
 
-	// Run hidden — no console window for the user to close.
 	cmd := exec.Command("cmd", "/d", "/c", bat)
 	cmd.Dir = dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow:    true,
-		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+		CreationFlags: 0x08000000,
 	}
 	if err := cmd.Start(); err != nil {
 		_ = os.Remove(tmp)

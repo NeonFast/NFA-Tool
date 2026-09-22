@@ -10,20 +10,22 @@ import (
 // Map is a simple VDF object (string keys, string or nested map values).
 type Map map[string]any
 
-// Ordered VDF builders (stable key order like a real dump).
 type kv struct {
 	K string
 	V any
 }
 
+// MapOrdered is a VDF object with stable key order.
 type MapOrdered []kv
 
+// Dump serializes a Map to VDF text.
 func Dump(m Map) string {
 	var b strings.Builder
 	writeMap(&b, m, 0)
 	return b.String()
 }
 
+// DumpOrdered serializes ordered key/value pairs to VDF text.
 func DumpOrdered(items []kv) string {
 	var b strings.Builder
 	writeOrdered(&b, items, 0)

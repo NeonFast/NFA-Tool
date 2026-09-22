@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -13,8 +15,12 @@ var assets embed.FS
 func main() {
 	ensureAdmin()
 
+	if os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") == "" {
+		_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-gpu")
+	}
+
 	app := application.New(application.Options{
-		Name:        "NFA Tool Recode v2",
+		Name:        fmt.Sprintf("%s v%s", AppName, AppVersion),
 		Description: "Steam ConnectCache token login",
 		Services: []application.Service{
 			application.NewService(NewAppService()),
@@ -23,14 +29,13 @@ func main() {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			// Keep running if guide window is closed while main is open (and vice versa on mac).
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "main",
-		Title:            "NFA Tool Recode v2",
+		Title:            fmt.Sprintf("%s v%s", AppName, AppVersion),
 		Width:            1120,
 		Height:           780,
 		MinWidth:         1120,
