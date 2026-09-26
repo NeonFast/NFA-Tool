@@ -1,5 +1,35 @@
 # Changelog
 
+## NFA-Tool · 3.1.1
+
+EN
+
+### Fixes
+- **Management features switch is now OFF by default** — new users get the minimal UI (Accounts / Logs / Settings) until they opt in; 3.1.0 shipped with Advanced / Checker tabs visible out of the box
+
+### Notes
+- License changed: MIT → **GPL-3.0**
+- Run as **Administrator**
+- Download: `NFA-Tool-windows-amd64.exe`
+
+---
+
+RU
+
+### Исправления
+- Свитч **«Функции управления» теперь ВЫКЛЮЧЕН по умолчанию** — новые пользователи видят минимальный интерфейс (Аккаунты / Журнал / Настройки), пока сами его не включат; в 3.1.0 вкладки «Расширенный» и «Чекер» были видны сразу
+
+### Важно
+- Лицензия изменена: MIT → **GPL-3.0**
+- Запуск **от администратора**
+- Скачать: `NFA-Tool-windows-amd64.exe`
+
+---
+
+**Full Changelog**: https://github.com/NeonFast/NFA-Tool/compare/v3.1.0...v3.1.1
+
+---
+
 ## NFA-Tool · 3.1.0
 
 EN

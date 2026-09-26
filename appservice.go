@@ -27,7 +27,7 @@ import (
 const AppName = "NFA Tool"
 
 // AppVersion is the single source of truth: main.go, GetVersion and the updater read it.
-const AppVersion = "3.1.0"
+const AppVersion = "3.1.1"
 
 // GetAppName returns the product display name.
 func (s *AppService) GetAppName() string {
