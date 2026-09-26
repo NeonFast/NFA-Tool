@@ -177,9 +177,9 @@ const MANAGEMENT_KEY = 'nfa-tool-management';
 
 function loadManagement(): boolean {
   try {
-    return localStorage.getItem(MANAGEMENT_KEY) !== '0';
+    return localStorage.getItem(MANAGEMENT_KEY) === '1';
   } catch {
-    return true;
+    return false;
   }
 }
 
