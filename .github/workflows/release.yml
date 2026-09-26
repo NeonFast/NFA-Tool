@@ -69,13 +69,17 @@ jobs:
         id: notes
         shell: bash
         run: |
-          VER="${{ steps.ver.outputs.version }}"
-          awk -v ver="$VER" '
-            /^## / { if (found) exit; if (substr($0, length($0)-length(ver)+1) == ver) found=1; next }
-            found && /^---$/ { exit }
-            found { print }
-          ' CHANGELOG.md > release_notes.md || true
-          if [ -s release_notes.md ] && grep -q "[A-Za-z]" release_notes.md; then
+          export VER="${{ steps.ver.outputs.version }}"
+          python - <<'EOF'
+          import os, re
+          ver = os.environ['VER']
+          text = open('CHANGELOG.md', encoding='utf-8').read()
+          m = re.search(r'(?ms)^## [^\n]*' + re.escape(ver) + r'\s*$(.*?)(?=^## |\Z)', text)
+          body = m.group(1).strip() if m else ''
+          body = re.sub(r'(\s*---)+\s*$', '', body).strip() + ('\n' if body else '')
+          open('release_notes.md', 'w', encoding='utf-8', newline='\n').write(body)
+          EOF
+          if [ -s release_notes.md ]; then
             echo "hascustom=true" >> "$GITHUB_OUTPUT"
             echo "Using curated notes from CHANGELOG.md"
           else
