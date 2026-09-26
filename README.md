@@ -125,7 +125,7 @@ build/
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+GPL-3.0 — see [LICENSE](LICENSE).
 
 **Not affiliated with Valve / Steam.**
 > See [NOTICE.md](NOTICE.md) for **inspiration credits**, AI note, and security.
