@@ -176,7 +176,7 @@ func ApplyDownload(exeURL string) error {
 	}
 	cur, _ = filepath.Abs(cur)
 	dir := filepath.Dir(cur)
-	tmp := filepath.Join(dir, "NFA-Tool-Recode-v2.new.exe")
+	tmp := filepath.Join(dir, "NFA-Tool.new.exe")
 	bat := filepath.Join(dir, "nfa-update.bat")
 
 	client := &http.Client{Timeout: 5 * time.Minute}

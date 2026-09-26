@@ -8,6 +8,7 @@ export type Dict = {
   accountManagement: string;
   accountKeyPlaceholder: string;
   keepExisting: string;
+  errSteamFirstRun: string;
   login: string;
   working: string;
   hintEmpty: string;
@@ -90,6 +91,13 @@ export type Dict = {
   driveHelp4: string;
   driveWaiting: string;
   cancel: string;
+  avatarSync: string;
+  diagDumpBtn: string;
+  searchAccounts: string;
+  searchEmpty: string;
+  viewLogins: string;
+  viewPersonas: string;
+  viewPersonaHint: string;
   close: string;
   driveTutorialTitle: string;
   driveStep1: string;
@@ -126,6 +134,8 @@ export type Dict = {
   settings: string;
   settingsApp: string;
   settingsDrive: string;
+  settingsManagement: string;
+  managementMode: string;
   settingsLang: string;
   settingsTheme: string;
   themeAuto: string;
@@ -139,6 +149,10 @@ export type Dict = {
   hintConfirmText: string;
   hintConfirmYes: string;
   hintConfirmNo: string;
+  delConfirmTitleOne: string;
+  delConfirmTitleMany: string;
+  delConfirmTextOne: string;
+  delConfirmTextMany: string;
   info: string;
   accInfoTitle: string;
   accInfoLoading: string;
@@ -206,6 +220,7 @@ export type Dict = {
   bstInvalid: string;
   bstError: string;
   bulkProgress: string;
+  bulkResults: string;
   bulkExportOk: string;
   bulkExportBad: string;
   bulkExportEmpty: string;
@@ -268,6 +283,7 @@ const en: Dict = {
   accountManagement: 'Account Management',
   accountKeyPlaceholder: 'Enter your account key...',
   keepExisting: 'Keep other Steam accounts',
+  errSteamFirstRun: 'Open Steam and sign in once so it can create its config files, then try again',
   login: 'Login',
   working: 'Working…',
   hintEmpty: 'No accounts yet. Paste a key above to add one.',
@@ -350,6 +366,13 @@ const en: Dict = {
   driveHelp4: 'Save → Connect Google → allow in browser → Upload to Drive',
   driveWaiting: 'Waiting for Google sign-in in the browser… You may press Cancel at any time.',
   cancel: 'Cancel',
+  avatarSync: 'Avatars {done}/{total}',
+  diagDumpBtn: 'Save diagnostics dump…',
+  searchAccounts: 'Search accounts…',
+  searchEmpty: 'Nothing found',
+  viewLogins: 'Logins',
+  viewPersonas: 'Nicknames',
+  viewPersonaHint: 'Switch between login and Steam nickname display',
   close: 'Close',
   driveTutorialTitle: 'Google Drive setup (one-time)',
   driveStep1: 'Open https://console.cloud.google.com and sign in with your Google account (the one whose Drive you intend to use).',
@@ -386,6 +409,8 @@ const en: Dict = {
   settings: 'Settings',
   settingsApp: 'Application',
   settingsDrive: 'Google Drive',
+  settingsManagement: 'Management features',
+  managementMode: 'Show "Advanced" and "Checker" tabs',
   settingsLang: 'Interface language',
   settingsTheme: 'Theme',
   themeAuto: 'Auto',
@@ -399,6 +424,10 @@ const en: Dict = {
   hintConfirmText: 'Really close this hint? It will not appear again. The instructions are always available via the "?" button.',
   hintConfirmYes: 'Yes, hide it',
   hintConfirmNo: 'Keep it',
+  delConfirmTitleOne: 'Delete account?',
+  delConfirmTitleMany: 'Delete accounts?',
+  delConfirmTextOne: '"{name}" will be removed from the saved list. This cannot be undone.',
+  delConfirmTextMany: '{n} accounts will be removed from the saved list. This cannot be undone.',
   info: 'Info',
   accInfoTitle: 'Account info',
   accInfoLoading: 'Fetching account data…',
@@ -454,8 +483,8 @@ const en: Dict = {
   rowCS2Medals: 'Medals',
   rowInvValue: 'Inventory value',
   invPartial: '(partial)',
-  bulkCheckBtn: 'Bulk check',
-  bulkTitle: 'Bulk account check',
+  bulkCheckBtn: 'Batch check',
+  bulkTitle: 'Batch account check',
   bulkKeysLabel: 'Keys — login----token, one per line',
   bulkProxyLabel: 'Proxies (optional, one per line: http/socks5, user:pass@host:port)',
   bulkStart: 'Check pasted keys',
@@ -466,6 +495,7 @@ const en: Dict = {
   bstInvalid: 'invalid',
   bstError: 'check error',
   bulkProgress: 'Checked {done} of {total}…',
+  bulkResults: 'Results',
   bulkExportOk: 'Export working',
   bulkExportBad: 'Export failed',
   bulkExportEmpty: 'Nothing to export',
@@ -480,7 +510,7 @@ const en: Dict = {
   stageLaunch: 'Launching Steam…',
   stageWaitWindow: 'Waiting for the Steam window…',
   settingsProxy: 'Proxies',
-  proxyHint: 'One per line: http/socks5, user:pass@host:port. Used by the bulk checker.',
+  proxyHint: 'One per line: http/socks5, user:pass@host:port. Used by the batch check.',
   bulkProxyGo: 'Proxies are configured in Settings',
   bulkOpenSettings: 'Open settings',
   bulkFile: 'Load .txt…',
@@ -528,6 +558,7 @@ const ru: Dict = {
   accountManagement: 'Управление аккаунтом',
   accountKeyPlaceholder: 'Вставьте ключ аккаунта…',
   keepExisting: 'Сохранить другие аккаунты Steam',
+  errSteamFirstRun: 'Откройте Steam и один раз войдите в аккаунт, чтобы он создал свои файлы конфигурации, затем повторите попытку',
   login: 'Войти',
   working: 'Пожалуйста, подождите…',
   hintEmpty: 'Сохранённых аккаунтов пока нет. Вставьте ключ в поле выше.',
@@ -610,6 +641,13 @@ const ru: Dict = {
   driveHelp4: 'Сохраните → Подключите Google → подтвердите доступ в браузере → Загрузите на Drive',
   driveWaiting: 'Ожидание входа Google в браузере… Вы можете нажать «Отмена» в любой момент.',
   cancel: 'Отмена',
+  avatarSync: 'Аватарки {done}/{total}',
+  diagDumpBtn: 'Сохранить дамп диагностики…',
+  searchAccounts: 'Поиск по аккаунтам…',
+  searchEmpty: 'Ничего не найдено',
+  viewLogins: 'Логины',
+  viewPersonas: 'Ники Steam',
+  viewPersonaHint: 'Переключить отображение: логин или ник Steam',
   close: 'Закрыть',
   driveTutorialTitle: 'Настройка Google Drive (один раз)',
   driveStep1: 'Откройте https://console.cloud.google.com и войдите в ваш аккаунт Google (тот, чей Drive требуется использовать).',
@@ -646,6 +684,8 @@ const ru: Dict = {
   settings: 'Настройки',
   settingsApp: 'Приложение',
   settingsDrive: 'Google Drive',
+  settingsManagement: 'Функции управления',
+  managementMode: 'Вкладки «Расширенный» и «Чекер»',
   settingsLang: 'Язык интерфейса',
   settingsTheme: 'Тема',
   themeAuto: 'Авто',
@@ -659,6 +699,10 @@ const ru: Dict = {
   hintConfirmText: 'Точно закрыть подсказку? Она больше не появится. Инструкция всегда доступна по кнопке «?».',
   hintConfirmYes: 'Да, скрыть',
   hintConfirmNo: 'Оставить',
+  delConfirmTitleOne: 'Удалить аккаунт?',
+  delConfirmTitleMany: 'Удалить аккаунты?',
+  delConfirmTextOne: 'Аккаунт «{name}» будет удалён из сохранённых. Действие необратимо.',
+  delConfirmTextMany: 'Будет удалено аккаунтов: {n}. Действие необратимо.',
   info: 'Инфо',
   accInfoTitle: 'Информация об аккаунте',
   accInfoLoading: 'Получаем данные аккаунта…',
@@ -714,8 +758,8 @@ const ru: Dict = {
   rowCS2Medals: 'Медали',
   rowInvValue: 'Цена инвентаря',
   invPartial: '(не все)',
-  bulkCheckBtn: 'Масс. проверка',
-  bulkTitle: 'Массовая проверка аккаунтов',
+  bulkCheckBtn: 'Пакетная проверка',
+  bulkTitle: 'Пакетная проверка аккаунтов',
   bulkKeysLabel: 'Ключи — login----token, по одному на строку',
   bulkProxyLabel: 'Прокси (необязательно, по одному на строку: http/socks5, user:pass@host:port)',
   bulkStart: 'Проверить вставленные',
@@ -726,6 +770,7 @@ const ru: Dict = {
   bstInvalid: 'невалиден',
   bstError: 'ошибка проверки',
   bulkProgress: 'Проверено {done} из {total}…',
+  bulkResults: 'Результаты',
   bulkExportOk: 'Экспорт рабочих',
   bulkExportBad: 'Экспорт нерабочих',
   bulkExportEmpty: 'Нечего экспортировать',
@@ -740,7 +785,7 @@ const ru: Dict = {
   stageLaunch: 'Запуск Steam…',
   stageWaitWindow: 'Ожидание окна Steam…',
   settingsProxy: 'Прокси',
-  proxyHint: 'По одному на строку: http/socks5, user:pass@host:port. Используются массовой проверкой.',
+  proxyHint: 'По одному на строку: http/socks5, user:pass@host:port. Используются пакетной проверкой.',
   bulkProxyGo: 'Прокси задаются в настройках',
   bulkOpenSettings: 'Открыть настройки',
   bulkFile: 'Загрузить .txt…',
@@ -835,6 +880,9 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   if (!msg) return msg;
   const m = msg.trim();
 
+  if (m === 'open Steam and sign in once so it can create its config files, then try again') {
+    return t(lang, 'errSteamFirstRun');
+  }
   if (m === 'Account deleted' || m === 'account deleted') return t(lang, 'accountDeleted');
   if (m.startsWith('Deleted ')) {
     const n = m.match(/Deleted (\d+)/)?.[1] ?? '';
@@ -846,6 +894,12 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   if (m === 'Cancelled' || m === 'cancelled') return t(lang, 'cancelled');
   if (m === 'Steam has been reset') return t(lang, 'steamReset');
   if (m === 'account not found') return t(lang, 'accountNotFound');
+  if (m === 'Diagnostics saved') {
+    return lang === 'ru' ? 'Дамп диагностики сохранён' : m;
+  }
+  if (m === 'no batch check results to export' || m === 'no bulk check results to export') {
+    return lang === 'ru' ? 'Нет результатов пакетной проверки для экспорта' : m;
+  }
   if (m === 'no accounts to export') return t(lang, 'exportNone');
   if (m === 'no accounts to import') return t(lang, 'importNone');
   if (m.startsWith('Imported ')) {
@@ -871,7 +925,19 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   if (m === 'Google Drive disconnected') {
     return lang === 'ru' ? 'Google Drive отключён' : 'Google Drive disconnected';
   }
-  if (m.startsWith('account name required')) return t(lang, 'accountNameRequired');
+  if (m.includes('account name required')) {
+    return lang === 'ru' ? m.replaceAll('account name required', 'не указан логин аккаунта') : m;
+  }
+  if (m.includes('no JWT found in account key')) {
+    return lang === 'ru'
+      ? m.replaceAll('no JWT found in account key', 'JWT не найден в ключе аккаунта')
+      : m;
+  }
+  if (m.includes('invalid input format (use login----token)')) {
+    return lang === 'ru'
+      ? m.replaceAll('invalid input format (use login----token)', 'неверный формат (нужно login----token)')
+      : m;
+  }
 
   let saveRe = /^Saved as (.+?) · token valid until (.+)$/;
   const saveMatch = m.match(saveRe);
@@ -886,6 +952,13 @@ export function translateBackendMessage(lang: Lang, msg: string): string {
   }
   if (m === 'no accounts found in Steam files') {
     return lang === 'ru' ? 'В файлах Steam аккаунты не найдены' : 'No accounts found in Steam files';
+  }
+  const uploadedRe = /^Uploaded (\d+) account\(s\) to Google Drive/;
+  const uploadedMatch = m.match(uploadedRe);
+  if (uploadedMatch) {
+    return lang === 'ru'
+      ? m.replace(uploadedRe, `Выгружено аккаунтов на Google Drive: ${uploadedMatch[1]}`)
+      : m;
   }
   if (m.startsWith('Uploaded ')) {
     return m.replace(/^Uploaded /, lang === 'ru' ? 'Загружено: ' : 'Uploaded ');

@@ -108,6 +108,14 @@ export function ExportBulkResults(which: string): $CancellablePromise<string> {
 }
 
 /**
+ * ExportBulkResultsToGoogleDrive uploads the lines of the last bulk check to
+ * Google Drive: which="ok" uploads working accounts, anything else the rest.
+ */
+export function ExportBulkResultsToGoogleDrive(which: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(3565259256, which);
+}
+
+/**
  * ExportTokens returns login----token lines for the given names (empty = all).
  */
 export function ExportTokens(names: string[] | null): $CancellablePromise<string> {
@@ -214,6 +222,13 @@ export function ListAccounts(): $CancellablePromise<$models.AccountDTO[] | null>
 }
 
 /**
+ * LogFrontendError records a JS error/unhandled rejection from the UI.
+ */
+export function LogFrontendError(msg: string): $CancellablePromise<void> {
+    return $Call.ByID(944679874, msg);
+}
+
+/**
  * LoginFromKey validates a pasted login----token key and logs into Steam with it.
  */
 export function LoginFromKey(accountKey: string, keepExisting: boolean): $CancellablePromise<$models.Result> {
@@ -257,6 +272,15 @@ export function PickTextFile(): $CancellablePromise<string> {
 }
 
 /**
+ * PrefetchAvatars slowly downloads missing avatars in the background,
+ * one profile request every few seconds to keep load negligible.
+ * Runs in its own goroutine; progress is streamed as avatar:progress events.
+ */
+export function PrefetchAvatars(): $CancellablePromise<void> {
+    return $Call.ByID(2958337485);
+}
+
+/**
  * ResetSteam asks for confirmation, then wipes Steam config/userdata and relaunches it.
  */
 export function ResetSteam(): $CancellablePromise<$models.Result> {
@@ -268,6 +292,14 @@ export function ResetSteam(): $CancellablePromise<$models.Result> {
  */
 export function SaveAccountKey(accountKey: string): $CancellablePromise<$models.Result> {
     return $Call.ByID(944295897, accountKey);
+}
+
+/**
+ * SaveDiagnosticsDump lets the user save a single text file with system info,
+ * the recent UI journal and the tail of the diagnostics log.
+ */
+export function SaveDiagnosticsDump(journal: string): $CancellablePromise<$models.Result> {
+    return $Call.ByID(284974159, journal);
 }
 
 /**

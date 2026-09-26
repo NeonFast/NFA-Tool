@@ -203,6 +203,33 @@ type xmlProfile struct {
 	Limited      int             `xml:"isLimitedAccount"`
 }
 
+// FetchProfileBasics fetches just the avatar URL and persona name from the
+// public XML profile. Cheap single-request probe for background prefetching.
+func FetchProfileBasics(steamID string) (avatarURL, persona string) {
+	u := fmt.Sprintf("https://steamcommunity.com/profiles/%s?xml=1", url.PathEscape(steamID))
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return "", ""
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	resp, err := accHTTP.Do(req)
+	if err != nil {
+		return "", ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", ""
+	}
+	var p xmlProfile
+	if err := xml.NewDecoder(resp.Body).Decode(&p); err != nil {
+		return "", ""
+	}
+	if p.SteamID64 == "" {
+		return "", ""
+	}
+	return p.AvatarFull, p.PersonaName
+}
+
 func fillCommunityProfile(info *AccountInfo, steamID string) error {
 	u := fmt.Sprintf("https://steamcommunity.com/profiles/%s?xml=1", url.PathEscape(steamID))
 	req, err := http.NewRequest(http.MethodGet, u, nil)

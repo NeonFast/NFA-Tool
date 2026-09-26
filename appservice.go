@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"nfa-tool/internal/gdrive"
@@ -25,7 +27,7 @@ import (
 const AppName = "NFA Tool"
 
 // AppVersion is the single source of truth: main.go, GetVersion and the updater read it.
-const AppVersion = "3.0.0"
+const AppVersion = "3.1.0"
 
 // GetAppName returns the product display name.
 func (s *AppService) GetAppName() string {
@@ -50,6 +52,8 @@ type bulkExportEntry struct {
 // AccountDTO is exposed to the frontend.
 type AccountDTO struct {
 	Name      string `json:"name"`
+	SteamID   string `json:"steamId,omitempty"`
+	Persona   string `json:"persona,omitempty"`
 	ExpiresIn string `json:"expiresIn"`
 	Valid     bool   `json:"valid"`
 	Avatar    string `json:"avatar,omitempty"`
@@ -81,6 +85,7 @@ func NewAppService() *AppService {
 		store, _ = storage.New(".")
 		base = "."
 	}
+	initDiagLog(base)
 	return &AppService{
 		store:  store,
 		gdrive: gdrive.New(base),
@@ -103,14 +108,14 @@ func (s *AppService) InstallUpdate(downloadURL string) Result {
 	if err := update.ApplyDownload(downloadURL); err != nil {
 		return s.fail(err.Error())
 	}
-	go func() {
+	goSafe("update-quit", func() {
 		time.Sleep(600 * time.Millisecond)
 		if app := application.Get(); app != nil {
 			app.Quit()
 		} else {
 			os.Exit(0)
 		}
-	}()
+	})
 	return s.ok("Update downloaded. Restarting…")
 }
 
@@ -125,28 +130,200 @@ func (s *AppService) avatarPath(steamID string) string {
 	return filepath.Join(s.base, "avatars", steamID+".jpg")
 }
 
-func (s *AppService) cacheAvatar(steamID, url string) {
+func (s *AppService) cacheAvatar(steamID, url string) bool {
 	if steamID == "" || url == "" {
-		return
+		return false
 	}
 	p := s.avatarPath(steamID)
 	if _, err := os.Stat(p); err == nil {
-		return
+		return true
 	}
 	resp, err := avatarHTTP.Get(url)
 	if err != nil {
-		return
+		return false
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return
+		return false
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil || len(data) == 0 {
-		return
+		return false
 	}
 	_ = os.MkdirAll(filepath.Dir(p), 0o755)
-	_ = os.WriteFile(p, data, 0o644)
+	if err := os.WriteFile(p, data, 0o644); err != nil {
+		return false
+	}
+	return true
+}
+
+func emitAvatarReady(name, steamID, avatar, persona string) {
+	if avatar == "" && persona == "" {
+		return
+	}
+	if app := application.Get(); app != nil {
+		app.Event.Emit("avatar:ready", map[string]string{"name": name, "steamId": steamID, "avatar": avatar, "persona": persona})
+	}
+}
+
+var personasMu sync.Mutex
+
+func (s *AppService) personasPath() string {
+	return filepath.Join(s.base, "avatars", "personas.json")
+}
+
+func (s *AppService) loadPersonas() map[string]string {
+	m := map[string]string{}
+	if data, err := os.ReadFile(s.personasPath()); err == nil {
+		_ = json.Unmarshal(data, &m)
+	}
+	return m
+}
+
+// cachePersona stores the Steam persona name for an account next to its avatar.
+func (s *AppService) cachePersona(steamID, persona string) {
+	if steamID == "" || persona == "" {
+		return
+	}
+	personasMu.Lock()
+	defer personasMu.Unlock()
+	m := s.loadPersonas()
+	if m[steamID] == persona {
+		return
+	}
+	m[steamID] = persona
+	data, err := json.Marshal(m)
+	if err != nil {
+		return
+	}
+	_ = os.MkdirAll(filepath.Dir(s.personasPath()), 0o755)
+	_ = os.WriteFile(s.personasPath(), data, 0o644)
+}
+
+func (s *AppService) cachedPersona(steamID string) string {
+	if steamID == "" {
+		return ""
+	}
+	personasMu.Lock()
+	defer personasMu.Unlock()
+	return s.loadPersonas()[steamID]
+}
+
+// cacheAvatarAndEmit caches the avatar and notifies the frontend so list rows
+// can swap the placeholder without waiting for a full refresh. When a prefetch
+// run is active and still expects this avatar, it also advances the counter —
+// this is how avatars fetched via the info dialog get counted.
+func (s *AppService) cacheAvatarAndEmit(name, steamID, url, persona string) {
+	if persona != "" {
+		s.cachePersona(steamID, persona)
+	}
+	avatar := ""
+	if s.cacheAvatar(steamID, url) {
+		avatar = s.cachedAvatar(steamID)
+		if done, total, ok := markAvatarDone(steamID); ok {
+			emitAvatarProgress(done, total)
+		}
+	}
+	emitAvatarReady(name, steamID, avatar, persona)
+}
+
+func emitAvatarProgress(done, total int) {
+	if app := application.Get(); app != nil {
+		app.Event.Emit("avatar:progress", map[string]int{"done": done, "total": total})
+	}
+}
+
+var (
+	avatarPrefetchRunning atomic.Bool
+	avatarPrefetchMu      sync.Mutex
+	avatarPrefetchPending map[string]bool
+	avatarPrefetchDone    int
+	avatarPrefetchTotal   int
+)
+
+// markAvatarDone counts a steamID towards the active prefetch run. It is
+// idempotent per run and reports whether a progress event should be emitted.
+func markAvatarDone(steamID string) (done, total int, ok bool) {
+	avatarPrefetchMu.Lock()
+	defer avatarPrefetchMu.Unlock()
+	if !avatarPrefetchRunning.Load() || avatarPrefetchPending == nil {
+		return 0, 0, false
+	}
+	if !avatarPrefetchPending[steamID] {
+		return 0, 0, false
+	}
+	delete(avatarPrefetchPending, steamID)
+	avatarPrefetchDone++
+	return avatarPrefetchDone, avatarPrefetchTotal, true
+}
+
+// PrefetchAvatars slowly downloads missing avatars in the background,
+// one profile request every few seconds to keep load negligible.
+// Runs in its own goroutine; progress is streamed as avatar:progress events.
+func (s *AppService) PrefetchAvatars() {
+	if !avatarPrefetchRunning.CompareAndSwap(false, true) {
+		return
+	}
+	goSafe("avatar-prefetch", func() {
+		defer avatarPrefetchRunning.Store(false)
+		m, err := s.store.Load()
+		if err != nil {
+			return
+		}
+		type entry struct {
+			name    string
+			steamID string
+		}
+		var pending []entry
+		for name, tok := range m {
+			info, err := token.ParseAndValidate(tok)
+			if err != nil || info.SteamID == "" {
+				continue
+			}
+			_, avatarErr := os.Stat(s.avatarPath(info.SteamID))
+			if avatarErr == nil && s.cachedPersona(info.SteamID) != "" {
+				continue
+			}
+			pending = append(pending, entry{name, info.SteamID})
+		}
+		sort.Slice(pending, func(i, j int) bool { return pending[i].name < pending[j].name })
+		total := len(pending)
+		if total == 0 {
+			return
+		}
+		avatarPrefetchMu.Lock()
+		avatarPrefetchPending = make(map[string]bool, total)
+		for _, e := range pending {
+			avatarPrefetchPending[e.steamID] = true
+		}
+		avatarPrefetchDone = 0
+		avatarPrefetchTotal = total
+		avatarPrefetchMu.Unlock()
+		emitAvatarProgress(0, total)
+		defer emitAvatarProgress(total, total)
+		for i, e := range pending {
+			if i > 0 {
+				time.Sleep(3 * time.Second)
+			}
+			// An avatar cached meanwhile (info dialog / key check) skips the fetch
+			// and has already been counted by cacheAvatarAndEmit.
+			needAvatar := false
+			if _, err := os.Stat(s.avatarPath(e.steamID)); err != nil {
+				needAvatar = true
+			}
+			needPersona := s.cachedPersona(e.steamID) == ""
+			if needAvatar || needPersona {
+				avatarURL, persona := steam.FetchProfileBasics(e.steamID)
+				if !needAvatar {
+					avatarURL = ""
+				}
+				s.cacheAvatarAndEmit(e.name, e.steamID, avatarURL, persona)
+			}
+			if done, total, ok := markAvatarDone(e.steamID); ok {
+				emitAvatarProgress(done, total)
+			}
+		}
+	})
 }
 
 func (s *AppService) cachedAvatar(steamID string) string {
@@ -191,6 +368,8 @@ func (s *AppService) ListAccounts() ([]AccountDTO, error) {
 		dto := AccountDTO{Name: name, Valid: false, ExpiresIn: "unknown"}
 		if info, err := token.ParseAndValidate(tok); err == nil {
 			dto.Valid = true
+			dto.SteamID = info.SteamID
+			dto.Persona = s.cachedPersona(info.SteamID)
 			dto.ExpiresIn = formatExpiryUntil(info.ExpiresAt)
 			dto.Avatar = s.cachedAvatar(info.SteamID)
 		} else {
@@ -222,16 +401,14 @@ func (s *AppService) rememberBulk(line string, ok bool) {
 	s.bulkMu.Unlock()
 }
 
-// ExportBulkResults writes the lines of the last bulk check to a user-picked
-// text file: which="ok" exports working accounts, anything else the rest.
-// Returns the written file path, or an empty string if the dialog was
-// cancelled.
-func (s *AppService) ExportBulkResults(which string) (string, error) {
+// bulkLines returns the stored lines of the last bulk check filtered by
+// which ("ok" for working accounts, anything else for the rest).
+func (s *AppService) bulkLines(which string) ([]string, error) {
 	s.bulkMu.Lock()
 	entries := append([]bulkExportEntry(nil), s.lastBulk...)
 	s.bulkMu.Unlock()
 	if len(entries) == 0 {
-		return "", fmt.Errorf("no bulk check results to export")
+		return nil, fmt.Errorf("no batch check results to export")
 	}
 	wantOK := which == "ok"
 	lines := make([]string, 0, len(entries))
@@ -241,8 +418,21 @@ func (s *AppService) ExportBulkResults(which string) (string, error) {
 		}
 	}
 	if len(lines) == 0 {
-		return "", fmt.Errorf("nothing to export")
+		return nil, fmt.Errorf("nothing to export")
 	}
+	return lines, nil
+}
+
+// ExportBulkResults writes the lines of the last bulk check to a user-picked
+// text file: which="ok" exports working accounts, anything else the rest.
+// Returns the written file path, or an empty string if the dialog was
+// cancelled.
+func (s *AppService) ExportBulkResults(which string) (string, error) {
+	lines, err := s.bulkLines(which)
+	if err != nil {
+		return "", err
+	}
+	wantOK := which == "ok"
 
 	app := application.Get()
 	if app == nil {
@@ -509,6 +699,7 @@ func (s *AppService) ok(msg string) Result {
 }
 
 func (s *AppService) fail(msg string) Result {
+	diagf("ошибка: %s", msg)
 	return Result{OK: false, Message: msg}
 }
 
@@ -557,7 +748,9 @@ func (s *AppService) CheckAccountKey(accountKey string) (steam.AccountInfo, erro
 	}
 	out := steam.FetchAccountInfo(info.Raw, info.SteamID)
 	if out.AvatarFull != "" {
-		go s.cacheAvatar(out.SteamID, out.AvatarFull)
+		goSafe("avatar-cache", func() { s.cacheAvatarAndEmit("", out.SteamID, out.AvatarFull, out.PersonaName) })
+	} else if out.PersonaName != "" {
+		s.cachePersona(out.SteamID, out.PersonaName)
 	}
 	return *out, nil
 }
@@ -577,7 +770,9 @@ func (s *AppService) GetAccountInfo(account string) (steam.AccountInfo, error) {
 	}
 	out := steam.FetchAccountInfo(info.Raw, info.SteamID)
 	if out.AvatarFull != "" {
-		go s.cacheAvatar(out.SteamID, out.AvatarFull)
+		goSafe("avatar-cache", func() { s.cacheAvatarAndEmit(account, out.SteamID, out.AvatarFull, out.PersonaName) })
+	} else if out.PersonaName != "" {
+		s.cachePersona(out.SteamID, out.PersonaName)
 	}
 	return *out, nil
 }
@@ -786,17 +981,11 @@ func (s *AppService) DisconnectGoogleDrive() Result {
 	return s.ok("Google Drive disconnected")
 }
 
-// ExportTokensToGoogleDrive uploads login----token text for selected (or all) accounts.
-func (s *AppService) ExportTokensToGoogleDrive(names []string) Result {
+// uploadToDrive uploads text as a file to Google Drive, connecting first if
+// needed and retrying once on an expired token.
+func (s *AppService) uploadToDrive(name, text, okMsg string) Result {
 	if s.gdrive == nil {
 		return s.fail("google drive unavailable")
-	}
-	text, n, err := s.buildExport(names)
-	if err != nil {
-		return s.fail(err.Error())
-	}
-	if n == 0 {
-		return s.fail("no accounts to export")
 	}
 	st := s.gdrive.GetStatus()
 	if !st.HasCredentials {
@@ -807,7 +996,6 @@ func (s *AppService) ExportTokensToGoogleDrive(names []string) Result {
 			return s.fail(err.Error())
 		}
 	}
-	name := fmt.Sprintf("nfa-tokens-%s.txt", time.Now().Format("2006-01-02_150405"))
 	link, err := s.gdrive.UploadText(name, text)
 	if err != nil {
 		if strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "invalid_grant") {
@@ -819,12 +1007,39 @@ func (s *AppService) ExportTokensToGoogleDrive(names []string) Result {
 			return s.fail(err.Error())
 		}
 	}
-	msg := fmt.Sprintf("Uploaded %d account(s) to Google Drive", n)
 	if link != "" {
-		msg += ": " + link
+		okMsg += ": " + link
 		_ = openBrowser(link)
 	}
-	return s.ok(msg)
+	return s.ok(okMsg)
+}
+
+// ExportTokensToGoogleDrive uploads login----token text for selected (or all) accounts.
+func (s *AppService) ExportTokensToGoogleDrive(names []string) Result {
+	text, n, err := s.buildExport(names)
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	if n == 0 {
+		return s.fail("no accounts to export")
+	}
+	name := fmt.Sprintf("nfa-tokens-%s.txt", time.Now().Format("2006-01-02_150405"))
+	return s.uploadToDrive(name, text, fmt.Sprintf("Uploaded %d account(s) to Google Drive", n))
+}
+
+// ExportBulkResultsToGoogleDrive uploads the lines of the last bulk check to
+// Google Drive: which="ok" uploads working accounts, anything else the rest.
+func (s *AppService) ExportBulkResultsToGoogleDrive(which string) Result {
+	lines, err := s.bulkLines(which)
+	if err != nil {
+		return s.fail(err.Error())
+	}
+	name := fmt.Sprintf("nfa-batch-failed-%s.txt", time.Now().Format("2006-01-02_150405"))
+	if which == "ok" {
+		name = fmt.Sprintf("nfa-batch-working-%s.txt", time.Now().Format("2006-01-02_150405"))
+	}
+	content := strings.Join(lines, "\r\n") + "\r\n"
+	return s.uploadToDrive(name, content, fmt.Sprintf("Uploaded %d account(s) to Google Drive", len(lines)))
 }
 
 // ExportTokensToFile writes selected (or all) tokens to a user-chosen .txt file.

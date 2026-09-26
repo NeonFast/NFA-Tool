@@ -11,5 +11,5 @@ const target = document.getElementById('app')!
 if (page === 'drive-guide') {
   mount(DriveGuide, { target })
 } else {
-  mount(App, { target })
+  import('./app.css').then(() => mount(App, { target }))
 }

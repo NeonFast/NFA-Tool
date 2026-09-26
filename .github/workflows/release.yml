@@ -2,8 +2,11 @@ name: Release
 
 # Push a version tag → build Windows exe → publish GitHub Release
 # Example:
-#   git tag v2.0.1
-#   git push origin v2.0.1
+#   git tag v3.1.0
+#   git push origin v3.1.0
+#
+# Release text: if CHANGELOG.md has a `## NFA-Tool · <version>` section, it is
+# used as the release body. Otherwise GitHub auto-generates notes from commits.
 on:
   push:
     tags:
@@ -11,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to release as (e.g. v2.0.1). Leave empty to use run id."
+        description: "Tag to release as (e.g. v3.1.0). Leave empty to use run id."
         required: false
         default: ""
 
@@ -62,24 +65,57 @@ jobs:
         shell: pwsh
         run: wails3 build
 
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          awk -v ver="$VER" '
+            /^## / { if (found) exit; if (substr($0, length($0)-length(ver)+1) == ver) found=1; next }
+            found && /^---$/ { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md || true
+          if [ -s release_notes.md ] && grep -q "[A-Za-z]" release_notes.md; then
+            echo "hascustom=true" >> "$GITHUB_OUTPUT"
+            echo "Using curated notes from CHANGELOG.md"
+          else
+            rm -f release_notes.md
+            echo "hascustom=false" >> "$GITHUB_OUTPUT"
+            echo "No curated section for $VER — falling back to generated notes"
+          fi
+
       - name: Prepare assets
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
           $exe = Get-ChildItem bin\*.exe | Select-Object -First 1
           if (-not $exe) { throw "No exe in bin/" }
-          $name = "NFA-Tool-Recode-v2-windows-amd64.exe"
+          $name = "NFA-Tool-windows-amd64.exe"
           Copy-Item $exe.FullName "release\$name"
           Get-FileHash "release\$name" -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash.ToLower())  $name" } |
             Set-Content -Encoding ascii "release\SHA256SUMS.txt"
           Get-ChildItem release | Format-Table Name, Length
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release (curated notes)
+        if: steps.notes.outputs.hascustom == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          name: NFA Tool Recode v2 ${{ steps.ver.outputs.version }}
+          name: NFA-Tool ${{ steps.ver.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            release/*.exe
+            release/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release (auto notes fallback)
+        if: steps.notes.outputs.hascustom != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: NFA-Tool ${{ steps.ver.outputs.version }}
           generate_release_notes: true
           files: |
             release/*.exe

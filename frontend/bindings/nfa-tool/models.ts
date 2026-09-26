@@ -10,6 +10,8 @@ import * as steam$0 from "./internal/steam/models.js";
  */
 export interface AccountDTO {
     "name": string;
+    "steamId"?: string;
+    "persona"?: string;
     "expiresIn": string;
     "valid": boolean;
     "avatar"?: string;

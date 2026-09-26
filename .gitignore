@@ -24,6 +24,7 @@ accounts.db-shm
 *.db-shm
 logs/
 *.log
+avatars/
 
 # Leftover nested folder / temp
 nfa-tool-v3/

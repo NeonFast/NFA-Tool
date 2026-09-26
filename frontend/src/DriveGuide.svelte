@@ -1,7 +1,13 @@
 <script lang="ts">
   import { Browser } from '@wailsio/runtime';
+  import { onMount } from 'svelte';
   import { AppService } from '../bindings/nfa-tool';
   import { type Lang, loadLang, saveLang, t } from './i18n';
+  import { calmUpdate, installLinkGuard } from './actions';
+
+  onMount(() => {
+    installLinkGuard();
+  });
 
   const steps: {
     titleKey: 'driveGuideT1' | 'driveGuideT2' | 'driveGuideT3' | 'driveGuideT4' | 'driveGuideT5' | 'driveGuideT6' | 'driveGuideT7' | 'driveGuideT8';
@@ -66,8 +72,11 @@
   const isFirst = $derived(step <= 0);
 
   function setLang(next: Lang) {
-    lang = next;
-    saveLang(next);
+    if (next === lang) return;
+    calmUpdate(() => {
+      lang = next;
+      saveLang(next);
+    });
   }
 
   async function openURL(url: string) {
@@ -100,17 +109,27 @@
 </script>
 
 <div class="guide">
-  <header class="bar">
+  <header class="titlebar">
     <div class="brand">
-      <span class="dot"></span>
-      <span>{t(lang, 'driveTutorialTitle')}</span>
-    </div>
-    <div class="bar-right">
-      <div class="lang-switch">
-        <button type="button" class="lang-btn" class:active={lang === 'ru'} onclick={() => setLang('ru')}>RU</button>
-        <button type="button" class="lang-btn" class:active={lang === 'en'} onclick={() => setLang('en')}>EN</button>
+      <span class="logo-mark" aria-hidden="true">G</span>
+      <div class="brand-text">
+        <span class="brand-name">{t(lang, 'driveTutorialTitle')}</span>
+        <span class="brand-ver">Google Drive</span>
       </div>
-      <button class="x" type="button" onclick={closeWin} aria-label={t(lang, 'close')}>✕</button>
+    </div>
+    <div class="title-actions">
+      <div class="lang-switch">
+        <button type="button" class="lang-btn" class:active={lang === 'ru'} onclick={() => setLang('ru')}><span class="pill" aria-hidden="true"></span><span class="lbl">RU</span></button>
+        <button type="button" class="lang-btn" class:active={lang === 'en'} onclick={() => setLang('en')}><span class="pill" aria-hidden="true"></span><span class="lbl">EN</span></button>
+      </div>
+      <div class="win-btns">
+        <button class="win close" type="button" onclick={closeWin} aria-label={t(lang, 'close')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 9L15 15" />
+            <path d="M15 9L9 15" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -128,7 +147,7 @@
     <span class="count">{step + 1} / {total}</span>
   </div>
 
-  <main class="body" style="animation: none">
+  <main class="body panel" style="animation: none">
     {#key step}
       <div class="step-anim">
     <p class="eyebrow">{t(lang, 'driveGuideStepOf', { n: step + 1, total })}</p>
@@ -168,64 +187,68 @@
 <style>
   :global(:root) {
     --bg: #09090b;
+    --bg-elevated: #141416;
+    --bg-titlebar: rgba(14, 14, 17, 0.96);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
     --text: #fafafa;
+    --text-secondary: #b4b4bc;
     --muted: #8b8b94;
     --accent: #ffffff;
+    --pill-bg: rgba(255, 255, 255, 0.16);
     --accent-hover: #f4f4f5;
+    --accent-active: #e4e4e7;
     --accent-fg: #09090b;
-    --accent-strong: #ffffff;
-    --cyan: #e4e4e7;
-    --warn: #fbbf24;
+    --accent-soft: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.04);
+    --hover-strong: rgba(255, 255, 255, 0.1);
+    --picked-bg: rgba(255, 255, 255, 0.06);
+    --mini-hover-border: rgba(255, 255, 255, 0.28);
+    --focus-border: rgba(255, 255, 255, 0.45);
+    --logo-ring: rgba(255, 255, 255, 0.08);
+    --beta-fg: #fbbf24;
     --warn-text: #fde68a;
-    --card: #141416;
-    --card-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    --border: rgba(255, 255, 255, 0.08);
-    --chip-bg: rgba(255, 255, 255, 0.04);
-    --chip-border: rgba(255, 255, 255, 0.08);
-    --pip: rgba(255, 255, 255, 0.12);
-    --pip-done: rgba(255, 255, 255, 0.35);
-    --link-bg: rgba(255, 255, 255, 0.08);
-    --link-border: rgba(255, 255, 255, 0.22);
-    --link-bg-hover: rgba(255, 255, 255, 0.14);
-    --link-border-hover: rgba(255, 255, 255, 0.4);
-    --ghost-bg: rgba(255, 255, 255, 0.04);
-    --ghost-border: rgba(255, 255, 255, 0.1);
-    --ghost-bg-hover: rgba(255, 255, 255, 0.07);
-    --ghost-border-hover: rgba(255, 255, 255, 0.28);
-    --dot-ring: rgba(255, 255, 255, 0.1);
+    --logo-shadow: 0 0 0 1px var(--logo-ring), 0 8px 20px rgba(0, 0, 0, 0.35);
+    --primary-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 8px 22px rgba(0, 0, 0, 0.28);
+    --primary-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 12px 28px rgba(0, 0, 0, 0.34);
+    --pill-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.4);
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
-    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+    --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-family: var(--font);
     color-scheme: dark;
   }
 
   :global(:root[data-theme='light']) {
     --bg: #f4f4f5;
+    --bg-elevated: #ffffff;
+    --bg-titlebar: rgba(250, 250, 250, 0.96);
+    --border: rgba(0, 0, 0, 0.09);
+    --border-strong: rgba(0, 0, 0, 0.22);
     --text: #18181b;
+    --text-secondary: #45454e;
     --muted: #61616b;
     --accent: #18181b;
+    --pill-bg: rgba(0, 0, 0, 0.1);
     --accent-hover: #27272a;
+    --accent-active: #3f3f46;
     --accent-fg: #fafafa;
-    --accent-strong: #18181b;
-    --cyan: #3f3f46;
-    --warn: #b45309;
+    --accent-soft: rgba(0, 0, 0, 0.07);
+    --hover: rgba(0, 0, 0, 0.04);
+    --hover-strong: rgba(0, 0, 0, 0.08);
+    --picked-bg: rgba(0, 0, 0, 0.05);
+    --mini-hover-border: rgba(0, 0, 0, 0.3);
+    --focus-border: rgba(0, 0, 0, 0.45);
+    --logo-ring: rgba(0, 0, 0, 0.1);
+    --beta-fg: #b45309;
     --warn-text: #92400e;
-    --card: #ffffff;
-    --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-    --border: rgba(0, 0, 0, 0.09);
-    --chip-bg: rgba(0, 0, 0, 0.04);
-    --chip-border: rgba(0, 0, 0, 0.08);
-    --pip: rgba(0, 0, 0, 0.12);
-    --pip-done: rgba(0, 0, 0, 0.3);
-    --link-bg: rgba(0, 0, 0, 0.05);
-    --link-border: rgba(0, 0, 0, 0.2);
-    --link-bg-hover: rgba(0, 0, 0, 0.09);
-    --link-border-hover: rgba(0, 0, 0, 0.35);
-    --ghost-bg: rgba(0, 0, 0, 0.03);
-    --ghost-border: rgba(0, 0, 0, 0.12);
-    --ghost-bg-hover: rgba(0, 0, 0, 0.06);
-    --ghost-border-hover: rgba(0, 0, 0, 0.28);
-    --dot-ring: rgba(0, 0, 0, 0.1);
+    --logo-shadow: 0 0 0 1px var(--logo-ring), 0 3px 10px rgba(0, 0, 0, 0.14);
+    --primary-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 3px 10px rgba(0, 0, 0, 0.14);
+    --primary-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 5px 14px rgba(0, 0, 0, 0.17);
+    --pill-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.06);
     color-scheme: light;
   }
 
@@ -257,11 +280,6 @@
     --wails-draggable: drag;
   }
 
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
   @keyframes slide-step {
     from { opacity: 0; transform: translateX(14px); }
     to { opacity: 1; transform: translateX(0); }
@@ -273,76 +291,157 @@
     grid-template-rows: auto auto 1fr auto;
   }
 
-  .bar {
+  .titlebar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px 8px 18px;
     gap: 12px;
+    padding: 14px 14px 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-titlebar);
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-weight: 650;
-    color: var(--text);
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
     font-size: 14px;
-  }
-
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+    color: var(--accent-fg);
     background: var(--accent);
-    box-shadow: 0 0 0 4px var(--dot-ring);
+    box-shadow: var(--logo-shadow);
+    flex-shrink: 0;
   }
 
-  .bar-right {
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .brand-name {
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .brand-ver {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .title-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     --wails-draggable: no-drag;
   }
 
+  :global(#app) {
+    transition: opacity 0.16s ease;
+  }
+
+  :global(html.calm-fade #app) {
+    opacity: 0;
+  }
+
   .lang-switch {
     display: inline-flex;
-    background: var(--chip-bg);
-    border: 1px solid var(--chip-border);
-    border-radius: 10px;
-    overflow: hidden;
+    padding: 3px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    position: relative;
+  }
+
+  .lang-btn .pill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    box-shadow: var(--pill-shadow);
+    opacity: 0;
+  }
+
+  .lang-btn.active .pill {
+    opacity: 1;
   }
 
   .lang-btn {
+    white-space: nowrap;
     border: none;
     background: transparent;
     color: var(--muted);
-    padding: 6px 10px;
-    font-size: 11.5px;
+    height: 22px;
+    padding: 0 11px;
+    font-size: 11px;
     font-weight: 700;
+    line-height: 1;
+    border-radius: 999px;
     cursor: pointer;
-  }
-
-  .lang-btn {
-    transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s var(--ease), transform 0.2s var(--ease);
   }
 
   .lang-btn.active {
-    background: var(--accent);
-    color: var(--accent-fg);
+    color: var(--text);
   }
 
-  .x {
-    width: 34px;
-    height: 28px;
+  .lang-btn .lbl {
+    position: relative;
+    top: 0.5px;
+  }
+
+  .win-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: 4px;
+  }
+
+  .win {
+    width: 38px;
+    height: 32px;
     border: none;
     border-radius: 8px;
     background: transparent;
     color: var(--muted);
     cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    transition: background 0.2s var(--ease), color 0.2s var(--ease);
   }
 
-  .x:hover {
+  .win svg {
+    width: 26px;
+    height: 26px;
+    display: block;
+  }
+
+  .win:hover {
+    background: var(--picked-bg);
+    color: var(--text);
+  }
+
+  .win.close:hover {
     background: #e11d48;
     color: white;
   }
@@ -351,7 +450,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 22px 14px;
+    padding: 12px 22px 12px;
     --wails-draggable: no-drag;
   }
 
@@ -360,7 +459,7 @@
     height: 6px;
     border: none;
     border-radius: 99px;
-    background: var(--pip);
+    background: var(--hover-strong);
     cursor: pointer;
     padding: 0;
     transition: width 0.28s var(--ease), background 0.28s var(--ease), transform 0.2s var(--ease);
@@ -371,7 +470,7 @@
   }
 
   .pip.done {
-    background: var(--pip-done);
+    background: var(--pill-bg);
   }
 
   .pip.on {
@@ -386,16 +485,19 @@
     font-weight: 600;
   }
 
+  .panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 2px);
+    box-shadow: var(--shadow);
+    --wails-draggable: no-drag;
+  }
+
   .body {
     margin: 0 18px;
-    padding: 28px 28px 22px;
-    border-radius: var(--radius);
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: var(--card-shadow);
+    padding: 24px 24px 20px;
     overflow: auto;
     min-height: 0;
-    --wails-draggable: no-drag;
   }
 
   .step-anim {
@@ -404,30 +506,30 @@
 
   .eyebrow {
     font-size: 12px;
-    letter-spacing: 0.6px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--muted);
-    font-weight: 700;
     margin-bottom: 10px;
   }
 
   h1 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     line-height: 1.25;
     color: var(--text);
     letter-spacing: -0.02em;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
 
   h1.warn {
-    color: var(--warn);
+    color: var(--beta-fg);
   }
 
   .text {
-    font-size: 15.5px;
+    font-size: 14px;
     line-height: 1.6;
-    color: var(--text);
+    color: var(--text-secondary);
     white-space: pre-wrap;
   }
 
@@ -436,48 +538,54 @@
   }
 
   .callout {
-    margin-top: 18px;
+    margin-top: 16px;
     padding: 12px 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: rgba(251, 191, 36, 0.12);
     border: 1px solid rgba(251, 191, 36, 0.28);
     color: var(--warn-text);
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.45;
   }
 
   .callout.soft {
-    background: rgba(167, 139, 250, 0.1);
-    border-color: rgba(167, 139, 250, 0.25);
-    color: var(--muted);
+    background: var(--accent-soft);
+    border-color: var(--mini-hover-border);
+    color: var(--text-secondary);
   }
 
   .links {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 22px;
+    margin-top: 20px;
   }
 
   .link-btn {
-    border: 1px solid var(--link-border);
-    background: var(--link-bg);
+    border: 1px solid var(--mini-hover-border);
+    background: var(--accent-soft);
     color: var(--text);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 13px;
-    font-weight: 650;
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+    transition:
+      background 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      color 0.2s var(--ease),
+      transform 0.2s var(--ease);
   }
 
   .link-btn:hover {
-    background: var(--link-bg-hover);
-    border-color: var(--link-border-hover);
+    background: var(--hover-strong);
+    border-color: var(--focus-border);
+    transform: translateY(-1px);
   }
 
   .link-btn:active {
-    transform: scale(0.98);
+    transform: translateY(0) scale(0.98);
   }
 
   .foot {
@@ -489,45 +597,65 @@
 
   .ghost {
     flex: 1;
-    height: 46px;
-    border-radius: 12px;
-    border: 1px solid var(--ghost-border);
-    background: var(--ghost-bg);
-    color: var(--text);
-    font-weight: 650;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+    transition:
+      background 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      color 0.2s var(--ease),
+      opacity 0.2s var(--ease),
+      transform 0.2s var(--ease);
   }
 
   .ghost:disabled {
-    opacity: 0.35;
+    opacity: 0.45;
     cursor: not-allowed;
   }
 
   .ghost:hover:not(:disabled) {
-    border-color: var(--ghost-border-hover);
-    background: var(--ghost-bg-hover);
+    background: var(--hover);
+    border-color: var(--border-strong);
+    color: var(--text);
+    transform: translateY(-1px);
   }
 
-  .ghost:active:not(:disabled),
-  .primary:active {
-    transform: scale(0.98);
+  .ghost:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
   }
 
   .primary {
     flex: 1.4;
-    height: 46px;
+    height: 42px;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: var(--accent);
     color: var(--accent-fg);
-    font-weight: 750;
-    font-size: 15px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+    box-shadow: var(--primary-shadow);
+    transition:
+      background 0.2s var(--ease),
+      transform 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
   }
 
   .primary:hover {
     background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--primary-shadow-hover);
+  }
+
+  .primary:active {
+    background: var(--accent-active);
+    transform: translateY(0) scale(0.98);
   }
 </style>

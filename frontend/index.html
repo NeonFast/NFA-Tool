@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/png" href="/icon.png" />
     <title>NFA Tool</title>
+    <script>
+      // TEMP crash trap: surface mount-time JS errors instead of a silent dark window
+      window.addEventListener('error', function (e) {
+        try {
+          var msg = (e.error && e.error.stack) || e.message || String(e);
+          document.title = 'ERR: ' + (e.message || 'error');
+          var pre = document.createElement('pre');
+          pre.style.cssText = 'color:#f87171;background:#fff;padding:20px;font:12px monospace;white-space:pre-wrap;margin:0;position:fixed;inset:0;z-index:99999;overflow:auto';
+          pre.textContent = msg;
+          (document.body || document.documentElement).appendChild(pre);
+        } catch (_) {}
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        try {
+          var r = e.reason && (e.reason.stack || e.reason.message) || String(e.reason);
+          document.title = 'REJ: ' + String(r).slice(0, 60);
+          var pre = document.createElement('pre');
+          pre.style.cssText = 'color:#f87171;background:#fff;padding:20px;font:12px monospace;white-space:pre-wrap;margin:0;position:fixed;inset:0;z-index:99999;overflow:auto';
+          pre.textContent = 'unhandledrejection: ' + r;
+          (document.body || document.documentElement).appendChild(pre);
+        } catch (_) {}
+      });
+    </script>
   </head>
   <body>
     <div id="app"></div>
